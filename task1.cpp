@@ -2,6 +2,7 @@
 #include <stack>
 #include <string>
 #include <sstream>
+#include <map>
 
 int precendence(char op) {
     if(op == '+' || op == '-') return 1;
@@ -9,7 +10,7 @@ int precendence(char op) {
     return 0;
 }
 
-std::string infixToPostfix(std::string s) {
+std::string toPostfix(std::string s) {
     std::stack<char> st;
     std::string result;
 
@@ -23,9 +24,9 @@ std::string infixToPostfix(std::string s) {
             continue;
         }
 
-        if(isdigit(c)) {
+        if(isalnum(c) || c == '.') {
             result += c;
-            if(i+1 >= s.length() || !isdigit(s[i+1])) {
+            if(i+1 >= s.length() || (!isalnum(s[i+1]) && s[i+1] != '.')) {
                 result += ' ';
             }
         } else if(c == '(') {
@@ -56,16 +57,28 @@ std::string infixToPostfix(std::string s) {
     return result;
 }
 
-int simplified_eval(std::string postfix) {
-    std::stack<int> st;
+double evaluate(std::string postfix, std::map<std::string, double>& variables) {
+    std::stack<double> st;
     std::string token;
     std::stringstream ss(postfix);
     while(ss >> token) {
-        if(isdigit(token[0]) || (token.length() > 1 && token[0] == '-')) {
-            st.push(std::stoi(token));
+        if(isdigit(token[0]) || (token.length() > 1 && isdigit(token[1]))) {
+            st.push(std::stod(token));
+        } else if(isalpha(token[0]) || (token[0] == '-' && token.length() > 1 && isalpha(token[1]))) {
+            std::string varName = token;
+            double sign = 1.0;
+            if(token[0] == '-') {
+                sign = -1.0;
+                varName = token.substr(1);
+            }
+            if(variables.count(varName) == 0) {
+                std::cout<<"Enter value for " << token << ": "; 
+                std::cin>>variables[varName];
+            }
+            st.push(sign * variables[varName]);
         } else {
-            int right = st.top(); st.pop();
-            int left = st.top(); st.pop();
+            double right = st.top(); st.pop();
+            double left = st.top(); st.pop();
 
             if(token == "+") {
                 st.push(left + right);
@@ -82,10 +95,28 @@ int simplified_eval(std::string postfix) {
 }
 
 int main() {
-    std::string expr;
-    std::cout<<"Input Math Expression: ";
-    std::getline(std::cin, expr);
-    int result = simplified_eval(infixToPostfix(expr));
-    std::cout << "Result: " << result<<std::endl;
+    std::map<std::string, double> vars;
+    // vars["x"] = 5;
+    // vars["y"] = 7;
+    std::string expr = "(a+b)*5+b";
+    std::cout<<"Expression is: "<<expr<<std::endl;
+    int cnt = 0;
+    for(double a=0; a<=10; a+=0.5) {
+        std::map<std::string, double> x;
+        x["a"] = a;
+        for(double b = 0; b<=10; b+=0.5) {
+            x["b"] = b;
+            double res = evaluate(toPostfix(expr),x);
+            std::cout<<"(a;b): "<<a<<":"<<b<<" "<< "out: " << res <<std::endl;
+            cnt++;
+        }
+    }
+    // std::cout<<"Input Math Expression: ";
+    // std::getline(std::cin, expr);
+    // std::string postfix = toPostfix(expr);
+    // double result = evaluate(postfix, vars);
+    // std::cout << "Postfix: " << postfix << std::endl;
+    // std::cout << "Result: " << result << std::endl;
+    std::cout<<cnt<<std::endl;
     return 0;
 }
