@@ -1,3 +1,5 @@
+import re
+
 def precendence(op):
     return {
         "+" : 1,
@@ -6,7 +8,7 @@ def precendence(op):
         "/" : 2
     }.get(op,0)
 
-def infix_to_postfix(s:str):
+def to_postfix(s:str):
     stack = []
     result = []
     s = s.replace('(-', '(0-')
@@ -17,13 +19,15 @@ def infix_to_postfix(s:str):
     for op in "+-/*()":
         s = s.replace(op, f" {op} ")
     
-    for token in s.split():
-        if token.isdigit() or ( token.startswith('-') and len(token) > 1):
+    tokens = re.findall(r"(\d+\.\d+|\d+|[a-zA-Z_]\w*|[\+\-\*/\(\)])",s)
+
+    for token in tokens:
+        if token.replace('.','',1).isdigit() or token[0].isalpha():
             result.append(token)
-        elif token == '(':
+        elif token == "(":
             stack.append(token)
         elif token == ")":
-            while stack and stack[-1] != '(':
+            while stack and stack[-1] != "(":
                 result.append(stack.pop())
             stack.pop()
         else:
@@ -36,7 +40,7 @@ def infix_to_postfix(s:str):
 
     return " ".join(result)
 
-def evaluate(postfix:str):
+def evaluate(postfix:str, variables:dict):
     stack = []
     ops = {
         "+" : lambda a, b : a + b,
@@ -45,13 +49,26 @@ def evaluate(postfix:str):
         "/" : lambda a, b : a / b,
         }
     for token in postfix.split():
-        if token.replace("-",'').isdigit():
-            stack.append(int(token))
+        if token.replace('.','',1).isdigit():
+            stack.append(float(token))
+        elif token[0].isalpha():
+            if token not in variables:
+                variables[token] = float(input(f"Enter value for {token}: "))
+            stack.append(variables[token])
         else:
-            right =  stack.pop()
+            right = stack.pop()
             left = stack.pop()
             stack.append(ops[token](left, right))
     return stack[0]
 
-expression = "(3+5)*4 - 5 + (5*4-26)/3"
-print(evaluate(infix_to_postfix(expression)))
+vars = {
+    "x":5,
+    "y":-8.5,
+    "z":2
+}
+
+expression = "x+y+z"
+postfix = to_postfix(expression)
+result = evaluate(postfix, vars)
+print(f"Postfix: {postfix}")
+print(f"Result: {result}")
