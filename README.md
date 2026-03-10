@@ -1,4 +1,4 @@
-# Math Expression Compiler & VM
+# Math Expression Compiler
 
 This project is a small-scale compiler and virtual machine designed to parse mathematical expressions, construct an Abstract Syntax Tree (AST), and compile them into efficient bytecode for execution.
 
