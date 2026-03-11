@@ -38,7 +38,7 @@ class NumberNode : public ASTNode {
             return dest;
         }
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << "Number: " << value << std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "Number: " << value << std::endl;
         }
 };
 
@@ -56,7 +56,7 @@ class VariableNode : public ASTNode {
             return dest;
         }
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << "Variable (Address: "<<address<<")"<<std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "Variable (Address: "<<address<<")"<<std::endl;
         }
 };
 
@@ -68,7 +68,7 @@ class BinaryOpNode : public ASTNode {
         BinaryOpNode(char o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r) :
             op(o), left(std::move(l)), right(std::move(r)) {}
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ')<<"BinaryOp: "<<op<<std::endl;
+            std::cout<<std::string(level * 4, ' ')  << std::string(level, '|') << "-->"  <<"BinaryOp: "<<op<<std::endl;
             left -> print(level + 1);
             right -> print(level + 1);
         }
@@ -102,7 +102,7 @@ class UnaryOpNode : public ASTNode {
     public:
         UnaryOpNode(char o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << "UnaryOp: "<< (op == '_' ? '-' : '+') <<std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "UnaryOp: "<< (op == '_' ? '-' : '+') <<std::endl;
             child -> print(level + 1);
         }
         int compile(std::vector<Instruction>& program, int& tempCounter) const override {

@@ -22,7 +22,7 @@ void disassemble(const std::vector<Instruction>& program) {
                           << std::setw(6) << inst.left 
                           << std::setw(6) << "-"
                           << std::setw(6) << inst.dest
-                          << "&(var_ref)";
+                          << "*var";
                 break;
             case OpCode::ADD:
                 std::cout << std::setw(12) << "ADD" << std::setw(6) << inst.left 

@@ -16,6 +16,7 @@ int main() {
 
     {
         std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
+        expr = "(x+5*(y+68)-0.128)/(z+6.5)";
         std::cout<<"Compiling expression: "<<expr<<std::endl;
 
         std::istringstream stream(expr);
@@ -31,6 +32,11 @@ int main() {
         finalIdx = root -> compile(program, tempSize);
         // disassemble(program);
     }
+    // st.setValueByAddress(x_addr, 2);
+    // st.setValueByAddress(y_addr, 3);
+    // st.setValueByAddress(z_addr, 1);
+    // double result = runVM(program, st, tempSize, finalIdx);
+    // std::cout<<result<<std::endl;
     const int iterations = 1000000;
     std::cout<<"\nStarting VM execution (1.000.000 iterations)..."<<std::endl;
     auto start = std::chrono::high_resolution_clock::now();
