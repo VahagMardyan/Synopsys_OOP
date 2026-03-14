@@ -1,5 +1,15 @@
 #include "parser.h"
 #include <iomanip>
 
-void disassemble(const std::vector<Instruction>& program);
-double runVM(const std::vector<Instruction>& program, const SymbolTable& symTable, int tempSize, int finalSize);
+class Calculate {
+    private:
+        std::vector<Instruction> program;
+        int tempSize = 0;
+        int finalIdx = 0;
+        bool debug_mode = false;
+        void visualize();
+    public:
+        Calculate(bool dm = false) : debug_mode(dm) {}
+        double execute(const SymbolTable& symTable);
+        void compile(const std::string& expr, SymbolTable& symTable);
+};

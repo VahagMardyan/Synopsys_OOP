@@ -22,7 +22,7 @@ class ASTNode {
     public:
         virtual ~ASTNode() = default;        
         virtual void print(int level = 0) const = 0;
-        virtual int compile(std::vector<Instruction>& program, int& tempCounter) const = 0;
+        virtual int transform(std::vector<Instruction>& program, int& tempCounter) const = 0;
 };
 
 class NumberNode : public ASTNode {
@@ -30,7 +30,7 @@ class NumberNode : public ASTNode {
         double value;
     public:
         NumberNode(double val) : value(val) {}
-        int compile(std::vector<Instruction>& program, int& tempCounter) const override {
+        int transform(std::vector<Instruction>& program, int& tempCounter) const override {
             int dest = tempCounter++;
             program.push_back({
                 OpCode::LOAD_CONST, 0, 0, dest, value
@@ -38,7 +38,7 @@ class NumberNode : public ASTNode {
             return dest;
         }
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "Number: " << value << std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "Number: " << value << std::endl;
         }
 };
 
@@ -48,7 +48,7 @@ class VariableNode : public ASTNode {
         const SymbolTable& symTable;
     public:
         VariableNode(size_t addr, const SymbolTable& st) : address(addr), symTable(st) {}
-        int compile(std::vector<Instruction>& program, int& tempCounter) const override {
+        int transform(std::vector<Instruction>& program, int& tempCounter) const override {
             int dest = tempCounter++;
             program.push_back({
                 OpCode::LOAD_VAR, (int)address, 0, dest, 0.0
@@ -56,7 +56,7 @@ class VariableNode : public ASTNode {
             return dest;
         }
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "Variable (Address: "<<address<<")"<<std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "Variable (Address: "<<address<<")"<<std::endl;
         }
 };
 
@@ -68,13 +68,13 @@ class BinaryOpNode : public ASTNode {
         BinaryOpNode(char o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r) :
             op(o), left(std::move(l)), right(std::move(r)) {}
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ')  << std::string(level, '|') << "-->"  <<"BinaryOp: "<<op<<std::endl;
+            std::cout<<std::string(level * 4, ' ')  << std::string(level, '|') << "--> "  <<"BinaryOp: "<<op<<std::endl;
             left -> print(level + 1);
             right -> print(level + 1);
         }
-        int compile(std::vector<Instruction>& program, int& tempCounter) const override {
-            int l_idx = left -> compile(program, tempCounter);
-            int r_idx = right -> compile(program, tempCounter);
+        int transform(std::vector<Instruction>& program, int& tempCounter) const override {
+            int l_idx = left -> transform(program, tempCounter);
+            int r_idx = right -> transform(program, tempCounter);
             OpCode code;
             switch(op) {
                 case '+' : code = OpCode::ADD; 
@@ -102,11 +102,11 @@ class UnaryOpNode : public ASTNode {
     public:
         UnaryOpNode(char o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
         void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "-->" << "UnaryOp: "<< (op == '_' ? '-' : '+') <<std::endl;
+            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "UnaryOp: "<< (op == '_' ? '-' : '+') <<std::endl;
             child -> print(level + 1);
         }
-        int compile(std::vector<Instruction>& program, int& tempCounter) const override {
-            int c_idx = child -> compile(program, tempCounter);
+        int transform(std::vector<Instruction>& program, int& tempCounter) const override {
+            int c_idx = child -> transform(program, tempCounter);
             int dest = tempCounter++;
             program.push_back({
                 OpCode::UNARY, c_idx, 0, dest, 0.0

@@ -1,7 +1,7 @@
 #include "calc.h"
 
-void disassemble(const std::vector<Instruction>& program) {
-    std::cout<<"\n[SYMBOLIC DISASSEMBLY]" << std::endl;
+void Calculate::visualize() {
+    std::cout<<"\n[SYMBOLIC Visualization]" << std::endl;
     std::cout << std::left << std::setw(6)  << "Addr" 
               << std::setw(12) << "OpCode" 
               << std::setw(6)  << "L" 
@@ -50,7 +50,7 @@ void disassemble(const std::vector<Instruction>& program) {
     std::cout << std::string(45, '-') << std::endl;
 }
 
-double runVM(const std::vector<Instruction>& program, const SymbolTable& symTable, int tempSize, int finalIdx) {
+double Calculate::execute(const SymbolTable& symTable) {
     if(program.empty()) return 0.0;
     
     std::vector<double> ev(tempSize, 0.0);
@@ -71,10 +71,34 @@ double runVM(const std::vector<Instruction>& program, const SymbolTable& symTabl
             break;
             case OpCode::MUL : ev[inst.dest] = ev[inst.left] * ev[inst.right];
             break;
-            case OpCode::UNARY : ev[inst.dest] = -ev[inst.dest];
+            case OpCode::UNARY : ev[inst.dest] = -ev[inst.left];
             break;
             default: throw std::runtime_error("Unknown OpCode in VM");
         }
     }
     return ev[finalIdx];
+}
+void Calculate::compile(const std::string& expr, SymbolTable& symTable) {
+
+    std::cout<<"Compiling expression: "<<expr<<std::endl;
+    program.clear();
+    tempSize = 0;
+    finalIdx = 0;
+    std::istringstream stream(expr);
+    Lexer lexer(stream);
+    Tokenizer tokenizer(lexer);
+    Parser parser(tokenizer, symTable);
+    auto root = parser.parse();
+    if(!root) {
+        std::cerr << "Compilation failed!" << std::endl;
+        return;
+    }
+ 
+    finalIdx = root -> transform(program, tempSize);
+
+    if(debug_mode) {
+        root -> print();
+        std::cout<<"\nTransformed AST:"<<std::endl;
+        visualize();
+    }
 }
