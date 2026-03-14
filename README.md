@@ -1,4 +1,4 @@
-# 🧮 Math Expression Compiler & VM
+# 🧮 Math Expression Compiler
 
 A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.
 
