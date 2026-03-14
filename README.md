@@ -107,14 +107,42 @@ Addr  OpCode      L     R     Dst   Value
 ```
 
 ---
+## 🛠️ Build and Run
+
+To compile and run the project, use the following commands depending on your compiler:
+
+### **Using g++ (Linux / MinGW)**
+
+```bash
+g++ -O3 *.cpp -static -o out.exe && ./out.exe
+```
+#### **g++ Flag Definitions:**
+* `-O3` ➡️ Enables the highest level of optimization for speed. The compiler performs aggressive code              transformations to make the VM run as fast as possible. 
+* `*.cpp` ➡️ Compiles all C++ source files in the current directory.
+* `-static` ➡️ Links libraries statically. This ensures the `.exe` contains all necessary dependencies and can run on other machines without requiring additional DLLs or libraries.
+* `-o out.exe` ➡️ Specifies the output executable file name.
+
+### **Using MSVC (Windows - Developer Command Prompt)**
+
+```bash
+cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe
+```
+
+#### **MSVC Flag Definitions:**
+
+* `/EHsc` ➡️ Enables standard C++ stack unwinding (Exception Handling).
+* `/O2` ➡️ Creates fast code (Maximum Optimization).
+* `/W4` ➡️ Displays all relevant warnings for code quality.
+* `*.cpp` ➡️ Compiles all C++ source files in the directory.
+* `/Fe:out.exe` ➡️ Specifies the output executable file name.
+---
+
+---
 
 ## 🛠️ Usage Example (main.cpp)
 
 ```cpp
 SymbolTable st;
-size_t x_addr = st.getAddress("x");
-size_t y_addr = st.getAddress("y");
-size_t z_addr = st.getAddress("z");
 st.setVariable("x", 1.0);
 st.setVariable("y", 2.0);
 st.setVariable("z", 3.0);

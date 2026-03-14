@@ -11,7 +11,7 @@ Token Tokenizer::getNextToken() {
             TokenType::EndOfExpr, ""
         };
     }
-    char current = lexer.peek();
+    char current = static_cast<char>(lexer.peek());
     if(isdigit(current) || current == '.') {
         std::string val;
         bool hasDot = false;

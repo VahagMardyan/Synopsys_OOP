@@ -23,6 +23,7 @@ class Parser {
         std::stack<std::shared_ptr<ASTNode>> nodes;
         int precedence(char op) const;
         void processOperatorStack(char currentOp);
+        void createNodeFromOp(char op);
     public:
         Parser(Tokenizer& tok, SymbolTable& st);
         std::shared_ptr<ASTNode> parse();

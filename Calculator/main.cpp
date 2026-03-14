@@ -3,14 +3,11 @@
 
 int main() {
     SymbolTable st;
-    size_t x_addr = st.getAddress("x");
-    size_t y_addr = st.getAddress("y");
-    size_t z_addr = st.getAddress("z");
     st.setVariable("x", 1.0);
     st.setVariable("y", 2.0);
     st.setVariable("z", 3.0);
 
-    Calculate calc;
+    Calculate calc(true);
 
     std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
     
@@ -19,6 +16,9 @@ int main() {
     std::cout<< "Result: " <<result<<std::endl;
     
     // const int iterations = 1000000;
+    // size_t x_addr = st.getAddress("x");
+    // size_t y_addr = st.getAddress("y");
+    // size_t z_addr = st.getAddress("z");
     // std::cout<<"\nStarting VM execution (" << iterations <<" iterations)..."<<std::endl;
     // auto start = std::chrono::high_resolution_clock::now();
     // for(int i=0; i < iterations; ++i) {

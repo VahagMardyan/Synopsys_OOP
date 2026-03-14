@@ -40,6 +40,9 @@ class NumberNode : public ASTNode {
         void print(int level) const override {
             std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "Number: " << value << std::endl;
         }
+        double getValue() const {
+            return value;
+        }
 };
 
 class VariableNode : public ASTNode {
@@ -85,7 +88,8 @@ class BinaryOpNode : public ASTNode {
                 break;
                 case '*' : code = OpCode::MUL;
                 break;
-                default: break;
+                default:
+                    throw std::runtime_error("Invalid operator");
             }
             int dest = tempCounter++;
             program.push_back({
@@ -107,11 +111,14 @@ class UnaryOpNode : public ASTNode {
         }
         int transform(std::vector<Instruction>& program, int& tempCounter) const override {
             int c_idx = child -> transform(program, tempCounter);
-            int dest = tempCounter++;
-            program.push_back({
-                OpCode::UNARY, c_idx, 0, dest, 0.0
-            });
-            return dest;
+            if(op == '-' || op == '_') {
+                int dest = tempCounter++;
+                program.push_back({
+                    OpCode::UNARY, c_idx, 0, dest, 0.0
+                });
+                return dest;
+            }
+            return c_idx;
         }
 };
 
