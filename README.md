@@ -2,6 +2,35 @@
 
 A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.
 
+---
+## 🚀 Technical Highlights
+
+This project implements a full compilation pipeline for mathematical expressions, following modern compiler design principles.
+
+### 🏛️ Architecture & Design Patterns
+
+* **Three-Stage Pipeline**:
+1. **Lexical Analysis**: Custom `Lexer` and `Tokenizer` with state management.
+2. **Syntax Analysis**: `Recursive Descent Parser` combined with the **Shunting-Yard algorithm** for operator precedence.
+3. **Code Generation**: AST (Abstract Syntax Tree) transformation into linear **Three-Address Bytecode**.
+
+
+* **AST (Abstract Syntax Tree)**: Implemented using **Polymorphism** and `std::shared_ptr` for automatic memory management and clear node hierarchy.
+* **Virtual Machine (VM)**: A register-based VM that executes optimized bytecode instructions, mimicking a real CPU execution cycle.
+
+### ⚡ Optimization Techniques
+
+* **Constant Folding**: Expressions like `5 + 10` or unary operations like `---5` are evaluated during the compilation phase to reduce VM overhead.
+* **Implicit Multiplication**: Support for mathematical shorthand like `5x`, `2(a+b)`, or `xy` through look-ahead parsing logic.
+* **RISC-style Instruction Set**: Purposefully chosen atomic instructions (e.g., `LOAD` + `NEG` instead of complex `LOAD_NEG`) to maintain architectural clarity and execution predictability.
+* **Efficient Symbol Mapping**: Fast variable lookup using a `SymbolTable` that maps variable names to memory addresses before execution.
+
+### 🛠️ Memory & Performance
+
+* **Bytecode Linearization**: The AST is flattened into a `std::vector<Instruction>`, which provides high **Cache Locality** during VM execution compared to traversing a tree structure.
+* **RAII (Resource Acquisition Is Initialization)**: Clean handling of objects and memory using modern C++ smart pointers.
+---
+
 ## 📁 Project Structure
 
 ### 🔍 Lexical Analysis (Lexer & Tokenizer)

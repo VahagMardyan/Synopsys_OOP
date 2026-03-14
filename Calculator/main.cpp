@@ -7,7 +7,7 @@ int main() {
     st.setVariable("y", 2.0);
     st.setVariable("z", 3.0);
 
-    Calculate calc(true);
+    Calculate calc;
 
     std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
     
