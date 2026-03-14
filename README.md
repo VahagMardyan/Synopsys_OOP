@@ -119,7 +119,8 @@ st.setVariable("x", 1.0);
 st.setVariable("y", 2.0);
 st.setVariable("z", 3.0);
 
-Calculate calc(true);
+Calculate calc; // This won't call root -> print() and calc.visualize() methods
+// Calculate calc(true); // This will print parse's output (The AST) and visualize its transformation (calc.visualize());
 
 std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
 
