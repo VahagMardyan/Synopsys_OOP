@@ -1,4 +1,4 @@
-# 🧮 Math Expression Compiler & VM
+# 🧮 Math Expression Compiler
 
 A high-performance C++ mathematical expression evaluator that follows a full compiler pipeline: from lexical analysis to Abstract Syntax Tree (AST) construction, and finally to bytecode execution via a Register-based Virtual Machine.
 
@@ -147,7 +147,8 @@ st.setVariable("x", 1.0);
 st.setVariable("y", 2.0);
 st.setVariable("z", 3.0);
 
-Calculate calc(true);
+Calculate calc; // This won't call root -> print() and calc.visualize() methods
+// Calculate calc(true); // This will print parse's output (The AST) and visualize its transformation (calc.visualize());
 
 std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
 
