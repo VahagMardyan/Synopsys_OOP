@@ -10,7 +10,7 @@ int main() {
     Calculate calc;
 
     std::string expr = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
-    
+
     calc.compile(expr, st);
     double result = calc.execute(st);
     std::cout<< "Result: " <<result<<std::endl;

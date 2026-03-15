@@ -21,7 +21,7 @@ This project implements a full compilation pipeline for mathematical expressions
 ### ⚡ Optimization Techniques
 
 * **Constant Folding**: Expressions like `5 + 10` or unary operations like `---5` are evaluated during the compilation phase to reduce VM overhead.
-* **Implicit Multiplication**: Support for mathematical shorthand like `5x`, `2(a+b)`, or `xy` through look-ahead parsing logic.
+* **Implicit Multiplication**: Supports for mathematical shorthand like `5x` or `2(a+b)` through look-ahead        parsing logic.
 * **RISC-style Instruction Set**: Purposefully chosen atomic instructions (e.g., `LOAD` + `NEG` instead of complex `LOAD_NEG`) to maintain architectural clarity and execution predictability.
 * **Efficient Symbol Mapping**: Fast variable lookup using a `SymbolTable` that maps variable names to memory addresses before execution.
 
@@ -85,28 +85,30 @@ Defines the hierarchical structure of the parsed expression.
 
 ### 🌳 AST Tree View 
 ```text
-    (x*x + y*y + z*z) * (-0.5 + x*y / 100)
---> BinaryOp: *
-    |--> BinaryOp: +
-        ||--> BinaryOp: +
-            |||--> BinaryOp: *
-                ||||--> Variable (Address: 0)
-                ||||--> Variable (Address: 0)
-            |||--> BinaryOp: *
-                ||||--> Variable (Address: 1)
-                ||||--> Variable (Address: 1)
-        ||--> BinaryOp: *
-            |||--> Variable (Address: 2)
-            |||--> Variable (Address: 2)
-    |--> BinaryOp: +
-        ||--> Number: -0.5
-        ||--> BinaryOp: /
-            |||--> BinaryOp: *
-                ||||--> Variable (Address: 0)
-                ||||--> Variable (Address: 1)
-            |||--> Number: 100
+    std::string expression = "(x*x + y*y + z*z) * (-0.5 + x*y / 100)";
+    
+    └── BinaryOp: *
+    ├── BinaryOp: +
+    │   ├── BinaryOp: +
+    │   │   ├── BinaryOp: *
+    │   │   │   ├── Var (Addr: 0)
+    │   │   │   └── Var (Addr: 0)
+    │   │   └── BinaryOp: *
+    │   │       ├── Var (Addr: 1)
+    │   │       └── Var (Addr: 1)
+    │   └── BinaryOp: *
+    │       ├── Var (Addr: 2)
+    │       └── Var (Addr: 2)
+    └── BinaryOp: +
+        ├── Number: -0.5
+        └── BinaryOp: /
+            ├── BinaryOp: *
+            │   ├── Var (Addr: 0)
+            │   └── Var (Addr: 1)
+            └── Number: 100
 ```
 
+---
 ### 📑 Disassembly View
 
 ```text
@@ -166,8 +168,6 @@ cl /EHsc /O2 /W4 *.cpp /Fe:out.exe && out.exe
 * `/Fe:out.exe` ➡️ Specifies the output executable file name.
 ---
 
----
-
 ## 🛠️ Usage Example (main.cpp)
 
 ```cpp
@@ -186,3 +186,4 @@ double result = calc.execute(st);
 std::cout<< "Result: " <<result<<std::endl;
 return 0;
 ```
+

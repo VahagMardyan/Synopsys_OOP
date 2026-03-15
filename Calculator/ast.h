@@ -21,7 +21,7 @@ struct Instruction {
 class ASTNode {
     public:
         virtual ~ASTNode() = default;        
-        virtual void print(int level = 0) const = 0;
+        virtual void print(std::string prefix = "", bool isLast = true) const = 0;
         virtual int transform(std::vector<Instruction>& program, int& tempCounter) const = 0;
 };
 
@@ -37,8 +37,8 @@ class NumberNode : public ASTNode {
             });
             return dest;
         }
-        void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "Number: " << value << std::endl;
+        void print(std::string prefix, bool isLast = true) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "Number: " << value << std::endl;
         }
         double getValue() const {
             return value;
@@ -58,8 +58,8 @@ class VariableNode : public ASTNode {
             });
             return dest;
         }
-        void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "Variable (Address: "<<address<<")"<<std::endl;
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "Var (Addr: " << address << ")" << std::endl;
         }
 };
 
@@ -70,10 +70,12 @@ class BinaryOpNode : public ASTNode {
     public:
         BinaryOpNode(char o, std::shared_ptr<ASTNode> l, std::shared_ptr<ASTNode> r) :
             op(o), left(std::move(l)), right(std::move(r)) {}
-        void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ')  << std::string(level, '|') << "--> "  <<"BinaryOp: "<<op<<std::endl;
-            left -> print(level + 1);
-            right -> print(level + 1);
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "BinaryOp: " << op << std::endl;
+            
+            std::string newPrefix = prefix + (isLast ? "    " : "│   ");
+            left -> print(newPrefix, false);
+            right -> print(newPrefix, true);
         }
         int transform(std::vector<Instruction>& program, int& tempCounter) const override {
             int l_idx = left -> transform(program, tempCounter);
@@ -105,10 +107,13 @@ class UnaryOpNode : public ASTNode {
         std::shared_ptr<ASTNode> child;
     public:
         UnaryOpNode(char o, std::shared_ptr<ASTNode> c) : op(o), child(std::move(c)) {}
-        void print(int level) const override {
-            std::cout<<std::string(level * 4, ' ') << std::string(level, '|') << "--> " << "UnaryOp: "<< (op == '_' ? '-' : '+') <<std::endl;
-            child -> print(level + 1);
+        void print(std::string prefix, bool isLast) const override {
+            std::cout << prefix << (isLast ? "└── " : "├── ") << "UnaryOp: " << (op == '_' ? '-' : '+') << std::endl;
+
+            std::string newPrefix = prefix + (isLast ? "    " : "│   ");
+            child -> print(newPrefix, true);
         }
+
         int transform(std::vector<Instruction>& program, int& tempCounter) const override {
             int c_idx = child -> transform(program, tempCounter);
             if(op == '-' || op == '_') {
