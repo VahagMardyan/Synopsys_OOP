@@ -167,7 +167,7 @@ This file defines the behavior of the editor (comments and brackets).
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type|array|array_push|array_pop|array_insert|array_remove)\\b",
+            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type|array|array_push|array_pop|array_insert|array_remove|number|string)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {
@@ -321,6 +321,21 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "array",
         "body": "array(${1:size})",
         "description": "array(size) -> array - Creates a new array of `size` elements, each initialized to none"
+    },
+    "array constructor": {
+        "prefix" : "array",
+        "body" : "array(${args})",
+        "description": "array(args) -> array - Creates a new array with `args` elements"
+    },
+    "number constructor" : {
+        "prefix" : "number",
+        "body" : "number(${string})",
+        "description" : "Number cast"
+    },
+    "string constructor" : {
+        "prefix" : "string",
+        "body" : "string(${value})",
+        "description" : "String cast"
     },
     "array literal": {
         "prefix": "arrlit",

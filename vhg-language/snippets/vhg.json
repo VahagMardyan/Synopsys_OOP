@@ -119,6 +119,21 @@
         "body": "array(${1:size})",
         "description": "array(size) -> array - Creates a new array of `size` elements, each initialized to none"
     },
+    "array constructor": {
+        "prefix" : "array",
+        "body" : "array(${args})",
+        "description": "array(args) -> array - Creates a new array with `args` elements"
+    },
+    "number constructor" : {
+        "prefix" : "number",
+        "body" : "number(${string})",
+        "description" : "Number cast"
+    },
+    "string constructor" : {
+        "prefix" : "string",
+        "body" : "string(${value})",
+        "description" : "String cast"
+    },
     "array literal": {
         "prefix": "arrlit",
         "body": "[${1:1, 2, 3}]",

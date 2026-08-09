@@ -68,7 +68,7 @@
             "name": "constant.numeric.vhg"
         },
         "builtIn": {
-            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type|array|array_push|array_pop|array_insert|array_remove)\\b",
+            "match": "(?i)\\b(input|length|void|m_e|m_pi|m_inf|m_max|ord|chr|bin|oct|dec|hex|type|array|array_push|array_pop|array_insert|array_remove|number|string)\\b",
             "name": "support.function.vhg"
         },
         "math_functions": {

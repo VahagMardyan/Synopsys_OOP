@@ -32,6 +32,7 @@ namespace {
         "ord", "chr", "type",
         "bin", "oct", "hex", "dec", "random",
         "array", "array_push", "array_pop", "array_insert", "array_remove",
+        "number", "string", // type constructors: number("55") -> 55, string(123) -> "123"
     };
 }
 

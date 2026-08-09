@@ -122,7 +122,7 @@ g++ -std=c++20 -O3 -static *.cpp -o vhg
 
 set -e
 
-SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp VirtualMachine/debugger.cpp VirtualMachine/printer.cpp"
+SOURCES="AST/ast.cpp Compiler/compiler.cpp Lexer/lexer.cpp Parser/parser.cpp Runner/main.cpp Tokenizer/tokenizer.cpp VirtualMachine/vm.cpp VirtualMachine/debugger.cpp VirtualMachine/ntprinter.cpp"
 
 CXX="g++"
 CXXFLAGS="-std=c++20 -O3"
@@ -483,6 +483,7 @@ VHG arrays are ordered, heterogeneous, **reference‑typed** collections. Assign
 
 ```vhg
 var arr = array(5);        # a new array of size 5, every slot is `none`
+var new_arr = array(1,2,3,"hello"); # a new array: [1,2,3,"hello"]
 var numbers = [1, 2, 3, 4, 5];
 var mixed = [10, 'hello', 3.14, none];   # elements may be any mix of types
 ```
@@ -630,18 +631,18 @@ void function main() {
 
 ### Operators
 
-| Category               | Operators                                                                                                                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                  |
-| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                    |
-| Logical                | `and` `or` `not`                                                                                                                                                                                                   |
-| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                  |
-| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                            |
-| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                              |
+| Category               | Operators                                                                                                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arithmetic             | `+` `-` `*` `/` `%` `//` (floor) `%/` (fractional) `**`                                                                                                                                                                                              |
+| Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                                                                |
+| Logical                | `and` `or` `not`                                                                                                                                                                                                                                               |
+| Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                                                              |
+| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                                      |
+| String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                                                                          |
 | Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), compound assignment (e.g.`arr[i] += 1;`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
-| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                    |
-| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                    |
-| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                             |
+| Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                                                                |
+| Loop operators         | `break;` -> exit loop earlier, `continue;` -> skip next iteration                                                                                                                                                                                                |
+| **Declarations** | `variable`, `var`, `local`, `global`                                                                                                                                                                                                                         |
 
 > **Note:** `and` / `or` **short-circuit**, like most languages. In `left and right`, `right` is only evaluated when `left` is truthy; in `left or right`, `right` is only evaluated when `left` is falsy. This matters for guarded expressions such as `i >= 0 and arr[i] > 0` — when `i` is `-1`, `arr[i]` is never touched. Both operators always evaluate to `1.0` or `0.0` (not the operand's own value, unlike Python's `and`/`or`).
 
@@ -853,7 +854,7 @@ switch(x) {
 
 ### Built‑in I/O
 
-- `input(prompt)` - User Input.
+- `input(prompt1, prompt2, ...)` - User Input.
 
   | Input                                                   | Type       | Description                          |
   | ------------------------------------------------------- | ---------- | ------------------------------------ |
@@ -875,10 +876,13 @@ switch(x) {
 - `hex(integer)` - Return the hexadecimal representation of an integer.
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
 - `array(size)` - Returns a new array of `size` elements, each initialized to `none`. See [Arrays](#arrays).
+- `array(arg1, arg2, arg3, ...)` - Returns a new array with `[arg1, arg2, arg3, ...].`
 - `array_push(arr, value)` - Appends `value` to `arr` in place; returns the new length.
 - `array_pop(arr)` - Removes and returns the last element of `arr` in place.
 - `array_insert(arr, index, value)` - Inserts `value` at `index` in `arr` in place; returns the inserted value.
 - `array_remove(arr, index)` - Removes and returns the element at `index` from `arr` in place.
+- `number(string)` - Number cast.
+- `string(argument)` - String cast.
 
 ---
 
@@ -892,8 +896,10 @@ switch(x) {
 | `_` separator   | `1_000_000`      | `1000000`          |
 | `e±N` `E±N` | `2e+3`, `3E-4` | `2000`, `0.0003` |
 
-> **Note** Implicit multiplication (`3x` as `3*x`) won't work for variables
-> named `e` or `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
+> **Note** Implicit multiplication (`3x` as `3*x`) won't work for variables named `e` and `E`, as `3e4` will always be parsed as `3×10⁴ = 30000`.
+
+> **Note** Implicit multiplication works for variables too.
+> E.g. `x z` will understand as `x * z`.
 
 > **Note** `_` is stripped silently as a visual separator. `e`/`E` are
 > processed as scientific notation. Unlike `0b`/`0o`/`0x`, none of these
@@ -1408,4 +1414,3 @@ Error: Line 3: Array index out of bounds
 ```
 
 ---
-

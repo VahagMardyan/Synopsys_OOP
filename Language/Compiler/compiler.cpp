@@ -118,14 +118,36 @@ bool Compiler::tryEmitMathBuiltinCall(
     if(name == "length") return emitUnary(OpCode::LENGTH);
 
     if(name == "array") {
-        // array(n) -> new array of size n, filled with none
-        if(args.size() != 1) return false;
-        int sizeReg = emitArg(args[0]);
+        if(args.size() == 1) {
+            // array(n) -> new array of size n, filled with none (unchanged)
+            int sizeReg = emitArg(args[0]);
+            resultReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::ARRAY_NEW, (uint32_t)resultReg, (uint32_t)sizeReg, 0});
+            freeTempRegister(sizeReg);
+            return true;
+        }
+        // array() -> [] , and array(a, b, c, ...) -> [a, b, c, ...]
+        // Same ARRAY_LIT + ARRAY_PUSH-per-element shape the [...] literal
+        // compiles to (see the ArrayLiteralNode case in generateByteCode).
         resultReg = allocateTempRegister();
-        code.push_back({(uint32_t)OpCode::ARRAY_NEW, (uint32_t)resultReg, (uint32_t)sizeReg, 0});
-        freeTempRegister(sizeReg);
+        code.push_back({(uint32_t)OpCode::ARRAY_LIT, (uint32_t)resultReg, 0, 0});
+        for(const auto& elem : args) {
+            int elemReg = emitArg(elem);
+            code.push_back({(uint32_t)OpCode::ARRAY_PUSH, (uint32_t)elemReg, (uint32_t)resultReg, (uint32_t)elemReg});
+            freeTempRegister(elemReg);
+        }
+        // Some callers (e.g. print()'s statement-level codegen) take a
+        // shortcut and read the LAST emitted instruction's dst as "the"
+        // result register, instead of going through tryEmitMathBuiltinCall's
+        // resultReg out-param. ARRAY_PUSH's dst is a scratch/discarded slot,
+        // so restore that invariant with a harmless self-MOV - the same fix
+        // the [...] array-literal codegen already applies for this reason.
+        code.push_back({(uint32_t)OpCode::MOV, (uint32_t)resultReg, (uint32_t)resultReg, 0});
         return true;
     }
+
+    if(name == "number") return emitUnary(OpCode::TO_NUMBER);
+    if(name == "string") return emitUnary(OpCode::TO_STRING);
 
     if(name == "array_push") {
         // array_push(arr, value) -> mutates arr in place, returns new length
@@ -176,13 +198,29 @@ bool Compiler::tryEmitMathBuiltinCall(
     }
 
     if(name == "input") {
-        if(args.size() > 1) return false; // input can have 0 or 1 argument
         resultReg = allocateTempRegister();
 
-        // for prompt
-        if(args.size() == 1) {
-            int promptReg = emitArg(args[0]);
-            code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)promptReg, 0, 0});
+        // Print each prompt argument in order (same treatment as print():
+        // string literals go straight to the string pool via PRINT_STR,
+        // everything else is evaluated and printed with PRINT).
+        for(const auto& promptArg : args) {
+            if(auto strNode = std::dynamic_pointer_cast<StringNode>(promptArg)) {
+                const std::string& val = strNode->getValue();
+                int strIdx;
+                auto it = stringMap.find(val);
+                if(it != stringMap.end()) {
+                    strIdx = it->second;
+                } else {
+                    strIdx = (int)stringPool.size();
+                    stringPool.push_back(val);
+                    stringMap[val] = strIdx;
+                }
+                code.push_back({(uint32_t)OpCode::PRINT_STR, (uint32_t)strIdx, 0, 0});
+            } else {
+                int promptReg = emitArg(promptArg);
+                code.push_back({(uint32_t)OpCode::PRINT, (uint32_t)promptReg, 0, 0});
+                freeTempRegister(promptReg);
+            }
         }
         code.push_back({(uint32_t)OpCode::INPUT, (uint32_t)resultReg, 0, 0});
         return true;

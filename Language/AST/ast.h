@@ -51,6 +51,8 @@ enum class OpCode : uint8_t {
     DEC, // int -> decimal string
     HEX, // int -> hexadecimal string
     TYPE, // type(argument) -> "string" / "number" / "none"
+    TO_NUMBER, // number(argument) -> parses/coerces argument into a number
+    TO_STRING, // string(argument) -> renders argument as a string (same text print() shows)
     LOAD_OUTER, // dst = mem[enclosingCallerFp(hops) + int8_offset]
     STORE_OUTER, // mem[enclosingCallerFp(hops) + int8_offset] = dstReg
     RANDOM, // random(min=0, max=1)
@@ -396,4 +398,3 @@ public:
     std::shared_ptr<StatementNode> getDefaultBody() const { return defaultBody; }
     std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
-

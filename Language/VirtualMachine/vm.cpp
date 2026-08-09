@@ -582,6 +582,38 @@ size_t VirtualMachine::executeSingleInstruction() {
                 }
             }
             break;
+
+            case OpCode::TO_NUMBER: {
+                const Value& val = registers[inst.left];
+                if(isNumber(val)) {
+                    registers[inst.dst] = val;
+                } else if(isString(val)) {
+                    const std::string& str = asString(val);
+                    try {
+                        size_t pos = 0;
+                        double result = std::stod(str, &pos);
+                        while(pos < str.size() && std::isspace((unsigned char)str[pos])) pos++;
+                        if(pos != str.size()) {
+                            throw std::runtime_error("number(): cannot convert '" + str + "' to a number");
+                        }
+                        registers[inst.dst] = result;
+                    } catch(const std::invalid_argument&) {
+                        throw std::runtime_error("number(): cannot convert '" + str + "' to a number");
+                    } catch(const std::out_of_range&) {
+                        throw std::runtime_error("number(): '" + str + "' is out of range for a number");
+                    }
+                } else if(isNone(val)) {
+                    throw std::runtime_error("number(): cannot convert none to a number");
+                } else {
+                    throw std::runtime_error("number(): cannot convert an array to a number");
+                }
+            }
+            break;
+
+            case OpCode::TO_STRING: {
+                registers[inst.dst] = valueToString(registers[inst.left]);
+            }
+            break;
     
         case OpCode::ORD: {
             const Value& val = registers[inst.left];
@@ -961,4 +993,3 @@ double VirtualMachine::run() {
         );
     }
 }
-

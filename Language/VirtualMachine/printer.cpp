@@ -117,6 +117,8 @@ void Debugger::printInstructionCompact(size_t pc) const {
         case OpCode::SW:          std::cout << "SW mem[" << inst.left << "] = r" << inst.dst; break;
         
         case OpCode::TYPE:        std::cout << "TYPE r" << inst.dst << " = type(r" << inst.left << ")"; break;
+        case OpCode::TO_NUMBER:   std::cout << "TO_NUMBER r" << inst.dst << " = number(r" << inst.left << ")"; break;
+        case OpCode::TO_STRING:   std::cout << "TO_STRING r" << inst.dst << " = string(r" << inst.left << ")"; break;
         case OpCode::ORD:         std::cout << "ORD r" << inst.dst << " = ord(r" << inst.left << ")"; break;
         case OpCode::CHR:         std::cout << "CHR r" << inst.dst << " = chr(r" << inst.left << ")"; break;
         case OpCode::BIN:         std::cout << "BIN r" << inst.dst << " = bin(r" << inst.left << ")"; break;
@@ -371,6 +373,14 @@ void Debugger::visualize() const {
             break;
         case OpCode::TYPE:
             opStr  = "TYPE " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::TO_NUMBER:
+            opStr  = "TO_NUMBER " + R(inst.left) + " " + R(inst.dst);
+            lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
+            break;
+        case OpCode::TO_STRING:
+            opStr  = "TO_STRING " + R(inst.left) + " " + R(inst.dst);
             lStr = std::to_string(inst.left); dstStr = std::to_string(inst.dst);
             break;
         case OpCode::ORD:
