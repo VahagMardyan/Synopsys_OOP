@@ -1,5 +1,38 @@
 global var x = 5;
 
+#* F-String and Constructor test *#
+
+
 void function main() {
-    print(x);
+    print(f"x={x}, type(x): {x}");
+    x = input("Input x: ");
+    print(f'New x is: {x}, type(x): {type(x)}');
+
+    var x = array();
+    var n = input("Input Array Length: ");
+    for (variable i = 0; i < n; i = i + 1) {
+        var z = input(f"x[{i}]= ");
+        array_push(x, z);
+    }
+    print(f"x={x}, type(x): {type(x)}");
+
+    var y = number('12.34');
+    print(f"y: {y}, type(y): {type(y)}");
+
+    var z = string(x);
+    print(f'z: {z}, type(z): {type(z)}');
 }
+
+#*
+    OUTPUT:
+        x=5, type(x): 5
+        Input x: 
+        New x is: none, type(x): none
+        Input Array Length: 3
+        x[0]= 13
+        x[1]= 32
+        x[2]= 
+        x=[13, 32, none], type(x): array
+        y: 12.34, type(y): number
+        z: [13, 32, none], type(z): string
+*#

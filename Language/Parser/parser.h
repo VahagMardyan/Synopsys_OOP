@@ -50,6 +50,7 @@ private:
     std::shared_ptr<StatementNode> parseReturn();
     std::shared_ptr<ASTNode> parseFunctionCall(const std::string& name);
     std::shared_ptr<ASTNode> parseArrayLiteral();
+    std::shared_ptr<ASTNode> parseFString(const std::string& raw);
     std::shared_ptr<ASTNode> applySubscriptChain(std::shared_ptr<ASTNode> base);
     std::shared_ptr<StatementNode> parseSwitch();
 public:

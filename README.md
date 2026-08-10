@@ -22,12 +22,16 @@
   - [It is desirable to know](#it-is-desirable-to-know)
   - [Data Types](#data-types)
   - [String Indexing](#string-indexing)
+  - [String Interpolation (f-strings)](#string-interpolation-f-strings)
+  - [Type Constructors (`number` / `string`)](#type-constructors-number--string)
   - [Arrays](#arrays)
   - [Operators](#operators)
   - [Mathematical Functions](#mathematical-functions)
   - [Mathematical Constants](#mathematical-constants)
   - [Control Flow](#control-flow)
   - [Functions](#functions)
+    - [Default arguments](#default-arguments)
+    - [Variadic parameters (`*args`)](#variadic-parameters-args)
   - [Program entry (`main function`)](#program-entry-main)
   - [Switch/case](#switchcase)
   - [Built‑in I/O](#builtin-io)
@@ -70,8 +74,8 @@
 ## Highlights
 
 - **Full compiler pipeline** – Lexer → Tokenizer → Parser → AST → Compiler → Bytecode → VM.
-- **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters and return values.
-- **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation; **mutable string indexing** (`s[i]` read/write).
+- **Rich language features** – variables (global/local), block scoping, `if`/`else`, `while`, `for` loops, functions with parameters, default argument values, variadic (`*args`) parameters, and return values.
+- **Strong typing for numbers and strings** – arithmetic, bitwise, logical, and comparison operators; string concatenation; **mutable string indexing** (`s[i]` read/write); **f-string interpolation** (`f"x={x}"`); explicit `number()`/`string()` conversions.
 - **Arrays** – ordered, heterogeneous, reference‑typed collections with literal syntax (including matrices/nested arrays), indexing, and mutating helpers (`array_push`, `array_pop`, `array_insert`, `array_remove`).
 - **Optimizations** – constant folding, implicit multiplication, post‑order code generation.
 - **Standalone bytecode** – binary `.vhb` files with a `VHB1` magic header, loadable and executable by the VM without re‑parsing.
@@ -409,7 +413,7 @@ for(variable global i = 0;i<4;i+=1) { #* ... *# }
 ### Data Types
 
 - **Numbers** – double‑precision floating point (internally `double`).
-- **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`. Strings are **mutable**: characters can be read and written by index (see [String Indexing](#string-indexing)).
+- **Strings** – double‑ or single‑quoted literals; supports escape sequences `\n`, `\t`, `\"`, `\\`. Strings are **mutable**: characters can be read and written by index (see [String Indexing](#string-indexing)). An `f"..."` / `f'...'` literal is an **f-string**: `{expr}` inside it is evaluated and interpolated (see [String Interpolation](#string-interpolation-f-strings)).
 - **Booleans** – `true` and `false` are stored as `1.0` and `0.0`.
 - **Arrays** – ordered, heterogeneous, **reference‑typed** collections created with `[...]` literals or `array(n)`. See [Arrays](#arrays).
 - **None** – `none` represents the absence of a value (`std::monostate`).
@@ -474,6 +478,104 @@ void function main() {
 | VM        | Bounds and type checks; in‑place mutation on write |
 
 Opcodes **100** (`LOAD_STR_IDX`) and **101** (`STORE_STR_IDX`) — see `Language/AST/OpCodes.md`. These two opcodes are shared with array indexing (see [Arrays](#arrays)): the VM dispatches on the runtime type of the base value, so the same instructions handle `str[i]` and `arr[i]`.
+
+### String Interpolation (f-strings)
+
+A string literal prefixed with `f` (immediately before the opening quote, no space) is an **f-string**: any `{expr}` inside it is parsed as a full VHG expression, evaluated, converted to a string (the same conversion `print` and `string()` use), and spliced into the result in place.
+
+```vhg
+void function main() {
+    var name = "World";
+    var x = 5;
+    var y = 10;
+    print(f"Hello, {name}! {x} + {y} = {x + y}\n");   # Hello, World! 5 + 10 = 15
+}
+```
+
+`{expr}` can be any expression, not just a bare variable — function calls, indexing, arithmetic, and array values all work, converting the same way `string()` (see [Type Constructors](#type-constructors-number--string)) would:
+
+```vhg
+void function main() {
+    var arr = [10, 20, 30];
+    print(f"length: {length(arr)}, first: {arr[0]}, doubled: {arr[0] * 2}\n");
+    print(f"whole array: {arr}\n");   # whole array: [10, 20, 30]
+}
+```
+
+Use `{{` and `}}` for a literal brace:
+
+```vhg
+void function main() {
+    var x = 5;
+    print(f"{{not interpolated}} but {x} is\n");   # {not interpolated} but 5 is
+}
+```
+
+Rules and gotchas:
+
+| Rule                   | Behavior                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prefix                 | `f` must be immediately followed by `"` or `'` with no space — `f "x"` (with a space) is just a variable named `f` followed by a separate string, not an f-string                                                                                                                                                                                                                   |
+| Literal braces         | `{{` and `}}` produce a single literal `{` / `}`                                                                                                                                                                                                                                                                                                                                       |
+| Empty interpolation    | `{}` is a compile-time error                                                                                                                                                                                                                                                                                                                                                                 |
+| Unmatched`}`         | A bare`}` (not part of `}}`) outside an interpolation is a compile-time error                                                                                                                                                                                                                                                                                                              |
+| Unterminated`{`      | A`{` with no matching `}` before the string ends is a compile-time error                                                                                                                                                                                                                                                                                                                   |
+| Quotes inside`{...}` | An expression inside`{}` **cannot contain the same quote character used to open the f-string** — the tokenizer finds the f-string's closing quote with a simple scan before it ever looks inside `{}` for nested strings, the same limitation Python had before 3.12. If your interpolated expression needs a string literal, open the f-string with the *other* quote character. |
+| Newline in`print`    | `print(f"...")` with a trailing `\n` in the f-string and no other arguments still gets `print`'s automatic newline added on top (see [Built‑in I/O](#builtin-io)) — you'll get a blank line unless you either drop the `\n` from the f-string or pass a second argument to `print`                                                                                                  |
+
+The quoting gotcha in practice:
+
+```vhg
+void function main() {
+    var x = 5;
+    # BAD: same quote (") used to open the f-string and inside the ternary
+    # print(f"val: {x == 5 ? "yes" : "no"}");  -> compile error, missing '}'
+
+    # GOOD: open the f-string with ' instead, since the inner strings use "
+    print(f'val: {x == 5 ? "yes" : "no"}');   # val: yes
+}
+```
+
+**Implementation (pipeline):**
+
+| Stage     | Role                                                                                                                                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokenizer | Recognizes an`f`/`F` immediately followed by a quote and emits a single `FStringLiteral` token holding the raw (unparsed) body                                                                                                      |
+| Parser    | `parseFString` splits the raw body into literal segments and `{...}` expressions, parsing each expression with its own nested `Parser`/`Tokenizer`; builds an `FStringNode`                                                     |
+| Compiler  | Desugars into a chain of`LOAD_STR` (literal segments) + `TO_STRING` (per interpolated expression) + `ADD` (string concatenation) — an f-string compiles to the same bytecode as writing the equivalent `+` concatenation by hand |
+| VM        | No dedicated opcode; runs entirely as`LOAD_STR`/`TO_STRING`/`ADD`                                                                                                                                                                   |
+
+### Type Constructors (`number` / `string`)
+
+`number(x)` and `string(x)` explicitly convert a value to a number or a string.
+
+```vhg
+void function main() {
+    print(number("42") + 1, "\n");     # 43
+    print(number("3.14"), "\n");       # 3.14
+    print(string(123), "\n");          # "123"
+    print(string([1, 2, 3]), "\n");    # "[1, 2, 3]"
+}
+```
+
+`string(x)` always succeeds — it's the same conversion `print` and f-strings use, so it works on numbers, strings (returned as-is), arrays (rendered like `[1, 2, 3]`), and `none` (rendered as `"none"`).
+
+`number(x)` is stricter:
+
+| Input                                                                                   | Result                                                          |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A number                                                                                | Returned unchanged                                              |
+| A numeric string (leading/trailing whitespace is fine, e.g.`" 42 "`)                  | Parsed to that number                                           |
+| A non-numeric string, or a string with trailing junk after the number (e.g.`"42abc"`) | Runtime error:`number(): cannot convert '...' to a number`    |
+| A string representing a value too large to fit in a`double`                           | Runtime error:`number(): '...' is out of range for a number`  |
+| `none`                                                                                | Runtime error:`number(): cannot convert none to a number`     |
+| An array                                                                                | Runtime error:`number(): cannot convert an array to a number` |
+
+```vhg
+void function main() {
+    print(number("abc"));   # Error: number(): cannot convert 'abc' to a number
+}
+```
 
 ### Arrays
 
@@ -583,18 +685,19 @@ print(d);   # [1, 2, 3, 4]
 
 **Rules**
 
-| Rule              | Behavior                                                                 |
-| ----------------- | ------------------------------------------------------------------------ |
-| Index type        | Must be a number; non‑integers are a runtime error                      |
-| Bounds            | `0 <= index < length(arr)`; out of range → runtime error              |
-| `array(n)` size | Must be a non‑negative integer                                          |
-| Equality (`==`) | Compares by reference (same underlying array), not element‑by‑element  |
-| Truthiness        | An empty array is falsy; a non‑empty array is truthy                    |
-| `type(arr)`     | Returns`"array"`                                                       |
-| `+`             | Array + array → new concatenated array. Array + non‑array is an error. |
-| `*`             | Array\* non‑negative number (either order) → new repeated array.       |
-| `*=`            | Same as the`arr = arr * number`                                        |
-| `+=`            | Same as`arr = arr + other`; reassigns rather than mutating in place    |
+| Rule                 | Behavior                                                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Index type           | Must be a number; non‑integers are a runtime error                                                                                                                                                                                   |
+| Bounds               | `0 <= index < length(arr)`; out of range → runtime error                                                                                                                                                                           |
+| `array(n)` size    | Must be a non‑negative integer                                                                                                                                                                                                       |
+| `array(...)` arity | A**single** argument means "size" (`array(5)` → 5 slots of `none`, **not** `[5]`); zero or **two-or-more** arguments build an array from those values (`array()` → `[]`, `array(5, 6)` → `[5, 6]`) |
+| Equality (`==`)    | Compares by reference (same underlying array), not element‑by‑element                                                                                                                                                               |
+| Truthiness           | An empty array is falsy; a non‑empty array is truthy                                                                                                                                                                                 |
+| `type(arr)`        | Returns`"array"`                                                                                                                                                                                                                    |
+| `+`                | Array + array → new concatenated array. Array + non‑array is an error.                                                                                                                                                              |
+| `*`                | Array\* non‑negative number (either order) → new repeated array.                                                                                                                                                                    |
+| `*=`               | Same as the`arr = arr * number`                                                                                                                                                                                                     |
+| `+=`               | Same as`arr = arr + other`; reassigns rather than mutating in place                                                                                                                                                                 |
 
 **Example program** (`vhg_files/arrays.vhg`):
 
@@ -765,6 +868,20 @@ Rules:
 - Calling with too few arguments (fewer than the required, non-default parameters) is a compile-time error; so is passing more arguments than the function declares (unless it takes `*args`, see below).
 - A default expression is compiled into the callee, not the caller, and evaluated in the callee's own scope — a bare name inside a default resolves as a **global**, not as another parameter. `function f(a, b = a)` will *not* make `b` default to `a`'s value.
 
+```vhg
+function add(a, b) {
+    return a + b;
+}
+
+void function main() {
+    print(add(1));
+}
+```
+
+```shell
+Error: Function 'add' requires at least 2 argument(s), but 1 provided
+```
+
 #### Variadic parameters (`*args`)
 
 A function's **last** parameter may be prefixed with `*` to collect any extra positional arguments into an ordinary array, similar to Python's `*args`:
@@ -814,6 +931,43 @@ Rules:
 - Only one `*args` parameter is allowed per function, and it must be the last parameter — nothing (named or defaulted) may follow it.
 - Inside the function, the variadic name is a normal local array variable: `length(...)`, indexing, and the array helpers (`array_push`, etc.) all work on it.
 - A call with `*args` present has no upper limit on argument count; it still must supply at least the function's non-default, non-variadic parameters.
+
+**Passing an existing array**
+
+If the caller passes exactly **one** argument into the variadic slot and that argument is itself an array, it's used **as-is** instead of being wrapped in another array — so a `*args` function can be called equally well with loose arguments or with an array you already have:
+
+```vhg
+function sum(*args) {
+    var total = 0;
+    var i = 0;
+    while (i < length(args)) {
+        total = total + args[i];
+        i = i + 1;
+    }
+    return total;
+}
+
+void function main() {
+    print(sum(1, 2, 3));     # 6  - three loose arguments
+    print(sum([1, 2, 3]));   # 6  - one array argument, used directly as args
+}
+```
+
+This unwrapping only happens when **exactly one** argument lands in the variadic slot. Passing two or more arguments (even if some of them are arrays) collects them into `args` normally, without unwrapping any of them:
+
+```vhg
+void function show(*args) {
+    print(args);
+}
+
+void function main() {
+    show([1, 2, 3]);     # [1, 2, 3]        - single array, unwrapped
+    show([1, 2], [3, 4]); # [[1, 2], [3, 4]] - two arguments, collected as-is
+    show();                # []               - no arguments
+}
+```
+
+> **Note:** This is a deliberate convenience rather than a literal port of Python's `*args` — in real Python, `f(*args)` called as `f([1,2,3])` gives `args = ([1,2,3],)` (still wrapped; you'd need the explicit `f(*[1,2,3])` spread to unpack it). VHG instead auto-unwraps the single-array case, so both calling styles "just work" for functions like `sum` above.
 
 ### Program entry (`main`)
 
@@ -875,14 +1029,14 @@ switch(x) {
 - `oct(integer)` - Return the octal representation of an integer.
 - `hex(integer)` - Return the hexadecimal representation of an integer.
 - `dec(string)` - Returns the decimal representation of given argment (if possible).
-- `array(size)` - Returns a new array of `size` elements, each initialized to `none`. See [Arrays](#arrays).
+- `array(size)` - Returns a new array of `size` elements, each initialized to `none`. Called with zero or two-or-more arguments instead, it builds an array directly from those values (`array()` → `[]`, `array(1, 2, 3)` → `[1, 2, 3]`). See [Arrays](#arrays).
 - `array(arg1, arg2, arg3, ...)` - Returns a new array with `[arg1, arg2, arg3, ...].`
 - `array_push(arr, value)` - Appends `value` to `arr` in place; returns the new length.
 - `array_pop(arr)` - Removes and returns the last element of `arr` in place.
 - `array_insert(arr, index, value)` - Inserts `value` at `index` in `arr` in place; returns the inserted value.
 - `array_remove(arr, index)` - Removes and returns the element at `index` from `arr` in place.
-- `number(string)` - Number cast.
-- `string(argument)` - String cast.
+- `number(x)` - Converts `x` to a number; errors if it can't be (invalid string, `none`, or array). See [Type Constructors](#type-constructors-number--string).
+- `string(x)` - Converts `x` to a string; always succeeds. See [Type Constructors](#type-constructors-number--string).
 
 ---
 
@@ -923,7 +1077,7 @@ switch(x) {
 ### Lexer & Tokenizer
 
 - `Lexer` provides a stream interface with `peek()` and `advance()`.
-- `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`). Builtin function names (including `array`, `array_push`, `array_pop`, `array_insert`, `array_remove`) are matched case‑insensitively, the same as the math builtins.
+- `Tokenizer` groups characters into tokens, skipping whitespace and comments (`# ...` and `#* ... *#`). Builtin function names (including `array`, `array_push`, `array_pop`, `array_insert`, `array_remove`, `number`, `string`) are matched case‑insensitively, the same as the math builtins. An `f`/`F` immediately followed by a quote is recognized as an f-string prefix and emits a single `FStringLiteral` token holding the raw (unparsed) body — see [String Interpolation](#string-interpolation-f-strings).
 
 ### Parser
 
@@ -932,6 +1086,7 @@ switch(x) {
 - Implicit multiplication (e.g., `2x` or `(a+b)(c+d)`) is handled by injecting a `*` token when appropriate.
 - **Constant folding** is performed *during parsing* to simplify the AST immediately.
 - **String subscripts** — postfix `[expr]` builds `SubscriptReadNode`; `name[idx] = value` builds `SubscriptWriteNode` (variable base only).
+- **f-strings** — `parseFString` splits an `FStringLiteral`'s raw body into literal segments and `{...}` expressions, parsing each `{...}` expression with its own nested `Parser`/`Tokenizer` instance and assembling an `FStringNode`.
 - **Array literals** — a leading `[` in expression position parses an `ArrayLiteralNode` (`[e1, e2, ...]`), including nested literals for matrices. Array subscripts reuse `SubscriptReadNode`/`SubscriptWriteNode`, but assignment bases may be a chained subscript expression (e.g. `matrix[i][j] = x;`), not just a plain variable.
 
 ### Symbol Table
@@ -955,7 +1110,11 @@ switch(x) {
 - **Constant folding** is re‑applied during optimization (redundant constants are merged).
 - Outputs a `ByteCode` structure containing instructions, constant pool (numbers), and string pool.
 - Emits **`LOAD_STR_IDX`** (read character/element) and **`STORE_STR_IDX`** (write character/element) — these two opcodes are shared between strings and arrays and dispatch on the runtime type of the base value at execution time.
-- Emits **`ARRAY_NEW`** for `array(n)`, **`ARRAY_LIT`** + a sequence of **`ARRAY_PUSH`** for `[...]` literals (each element is appended to the new array immediately after it's evaluated, rather than staged through a shared buffer, so nested/matrix literals compile correctly), and **`ARRAY_PUSH`**/**`ARRAY_POP`**/**`ARRAY_INSERT`**/**`ARRAY_REMOVE`** for the corresponding builtin calls.
+- Emits **`ARRAY_NEW`** for `array(n)`, **`ARRAY_LIT`** + a sequence of **`ARRAY_PUSH`** for `[...]` literals and for the `array(a, b, ...)` element-construction form (each element is appended to the new array immediately after it's evaluated, rather than staged through a shared buffer, so nested/matrix literals compile correctly), and **`ARRAY_PUSH`**/**`ARRAY_POP`**/**`ARRAY_INSERT`**/**`ARRAY_REMOVE`** for the corresponding builtin calls.
+- Validates every call's argument count against the callee's declared shape (required parameters, defaulted parameters, and whether it's variadic) with a dedicated `checkCallArgCount` check at compile time, raising a clear error immediately rather than letting a mismatched call silently misbehave at runtime.
+- Emits **`ARGC`** (how many arguments the caller actually passed) to decide, per defaulted parameter, whether to load it from the caller or evaluate its default expression; emits **`COLLECT_VARARGS`** to gather everything past the named parameters into the `*args` array, unwrapping a single array argument in place rather than double-wrapping it (see [Variadic parameters](#variadic-parameters-args)).
+- Desugars an `FStringNode` into `LOAD_STR` (literal segments) + `TO_STRING` (per interpolated expression) + `ADD` (string concatenation) — no dedicated f-string opcode exists; it compiles to the same bytecode as an equivalent hand-written `+` chain.
+- Emits **`TO_NUMBER`**/**`TO_STRING`** for the `number()`/`string()` builtins.
 
 ---
 
@@ -1066,16 +1225,18 @@ struct Instruction {
 
 Array instructions reuse this same 3‑operand shape:
 
-| Opcode            | `dst`                           | `left`                        | `right`      |
-| ----------------- | --------------------------------- | ------------------------------- | -------------- |
-| `ARRAY_NEW`     | result register (new array)       | size register                   | —             |
-| `ARRAY_LIT`     | result register (new empty array) | —                              | —             |
-| `ARRAY_PUSH`    | result register (new length)      | array register                  | value register |
-| `ARRAY_POP`     | result register (removed value)   | array register                  | —             |
-| `ARRAY_INSERT`  | value register                    | array register                  | index register |
-| `ARRAY_REMOVE`  | result register (removed value)   | array register                  | index register |
-| `LOAD_STR_IDX`  | result register                   | base register (string or array) | index register |
-| `STORE_STR_IDX` | value register                    | base register (string or array) | index register |
+| Opcode              | `dst`                                  | `left`                                    | `right`      |
+| ------------------- | ---------------------------------------- | ------------------------------------------- | -------------- |
+| `ARRAY_NEW`       | result register (new array)              | size register                               | —             |
+| `ARRAY_LIT`       | result register (new empty array)        | —                                          | —             |
+| `ARRAY_PUSH`      | result register (new length)             | array register                              | value register |
+| `ARRAY_POP`       | result register (removed value)          | array register                              | —             |
+| `ARRAY_INSERT`    | value register                           | array register                              | index register |
+| `ARRAY_REMOVE`    | result register (removed value)          | array register                              | index register |
+| `LOAD_STR_IDX`    | result register                          | base register (string or array)             | index register |
+| `STORE_STR_IDX`   | value register                           | base register (string or array)             | index register |
+| `ARGC`            | result register (argument count)         | —                                          | —             |
+| `COLLECT_VARARGS` | result register (variadic args as array) | starting argument index (named param count) | —             |
 
 #### Address decoding for jump/call instructions:
 
@@ -1199,7 +1360,7 @@ When the VM loads a `.vhb` file, it performs these steps:
 - **Register file** – 256+ registers (indexed by `uint8_t`), with `x2` as stack pointer and `x8` as frame pointer.
 - **Memory** – linear array of `Value`, a variant of `monostate` (none), `double`, `std::string`, and `std::shared_ptr<ArrayObj>` (arrays). Arrays are the only reference type: copying a `Value` that holds an array copies the shared pointer, not the elements, which is what gives arrays their in‑place mutation semantics.
 - **Call stack** – saves return address, caller’s SP/FP, and argument buffer.
-- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), string/array indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`), and array construction/mutation (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`).
+- **Instruction set** – includes RISC‑V inspired arithmetic (`ADD`, `SUB`, `AND`, …), control flow (`JMP`, `JZ`, `CALL`, `RETURN`), memory access (`LOAD`/`STORE` relative to FP), string/array indexing (`LOAD_STR_IDX`, `STORE_STR_IDX`), array construction/mutation (`ARRAY_NEW`, `ARRAY_LIT`, `ARRAY_PUSH`, `ARRAY_POP`, `ARRAY_INSERT`, `ARRAY_REMOVE`), default/variadic parameter support (`ARGC`, `COLLECT_VARARGS`), and explicit type conversion (`TO_NUMBER`, `TO_STRING`).
 - Debug mode (`VirtualMachine(true)`) prints the AST and a disassembly of the generated bytecode.
 
 ## Example Program

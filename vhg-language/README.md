@@ -1,3 +1,30 @@
+```json
+{
+    "comments": {
+        "lineComment": {
+            "comment" : "#",
+            "noIndent" : false
+        },
+        "blockComment": ["#*", "*#"]
+    },
+    "brackets": [
+        ["{", "}"],
+        ["(", ")"],
+        ["[", "]"]
+    ],
+    "autoClosingPairs": [
+        { "open": "{", "close": "}" },
+        { "open": "(", "close": ")" },
+        { "open": "[", "close": "]" },
+        { "open": "\"", "close": "\"" },
+        { "open": "'", "close": "'" },
+        { "open": "f\"", "close": "\"" },
+        { "open": "f'", "close": "'" },
+        { "open": "#*", "close": "*#" },
+    ]
+}
+```
+
 ## Guide: Setting Up Native VHG Language Support in VS Code
 
 This setup allows VS Code to recognize `.vhg` files as a formal language, enabling **perfect "Ctrl + /" comment toggling**, auto-closing brackets, and custom syntax highlighting without any buggy snippets.
@@ -89,7 +116,12 @@ This file defines the behavior of the editor (comments and brackets).
         { "open": "(", "close": ")" },
         { "open": "[", "close": "]" },
         { "open": "\"", "close": "\"" },
-        { "open": "'", "close": "'" }
+        { "open": "'", "close": "'" },
+        { "open": "f\"", "close": "\"" },
+        { "open": "f'", "close": "'" },
+        { "open": "F\"", "close": "\"" },
+        { "open": "F'", "close": "'" },
+        { "open": "#*", "close": "*#" },
     ]
 }
 ```
@@ -102,6 +134,7 @@ This file defines the behavior of the editor (comments and brackets).
     "scopeName": "source.vhg",
     "patterns": [
         { "include": "#comments" },
+        { "include": "#fstrings" },
         { "include": "#strings" },
         { "include": "#keywords" },
         { "include": "#builtIn" },
@@ -147,6 +180,66 @@ This file defines the behavior of the editor (comments and brackets).
                         "name": "constant.character.escape.vhg",
                         "match": "\\\\."
                     }]
+                }
+            ]
+        },
+        "fstrings": {
+            "patterns": [
+                {
+                    "name": "string.interpolated.double.vhg",
+                    "begin": "(?i)\\bf\"",
+                    "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.vhg" } },
+                    "end": "\"",
+                    "endCaptures": { "0": { "name": "punctuation.definition.string.end.vhg" } },
+                    "patterns": [
+                        { "name": "constant.character.escape.vhg", "match": "\\{\\{|\\}\\}" },
+                        { "name": "constant.character.escape.vhg", "match": "\\\\." },
+                        {
+                            "name": "meta.embedded.line.vhg",
+                            "begin": "\\{",
+                            "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.vhg" } },
+                            "end": "\\}",
+                            "endCaptures": { "0": { "name": "punctuation.section.embedded.end.vhg" } },
+                            "patterns": [
+                                { "include": "#builtIn" },
+                                { "include": "#math_functions" },
+                                { "include": "#boolean" },
+                                { "include": "#logical_operators" },
+                                { "include": "#numbers" },
+                                { "include": "#function_call" },
+                                { "include": "#operators" },
+                                { "include": "#variables" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "string.interpolated.single.vhg",
+                    "begin": "(?i)\\bf'",
+                    "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.vhg" } },
+                    "end": "'",
+                    "endCaptures": { "0": { "name": "punctuation.definition.string.end.vhg" } },
+                    "patterns": [
+                        { "name": "constant.character.escape.vhg", "match": "\\{\\{|\\}\\}" },
+                        { "name": "constant.character.escape.vhg", "match": "\\\\." },
+                        {
+                            "name": "meta.embedded.line.vhg",
+                            "begin": "\\{",
+                            "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.vhg" } },
+                            "end": "\\}",
+                            "endCaptures": { "0": { "name": "punctuation.section.embedded.end.vhg" } },
+                            "patterns": [
+                                { "include": "#builtIn" },
+                                { "include": "#math_functions" },
+                                { "include": "#boolean" },
+                                { "include": "#logical_operators" },
+                                { "include": "#numbers" },
+                                { "include": "#function_call" },
+                                { "include": "#operators" },
+                                { "include": "#variables" }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -320,22 +413,17 @@ This file defines the behavior of the editor (comments and brackets).
     "array function": {
         "prefix": "array",
         "body": "array(${1:size})",
-        "description": "array(size) -> array - Creates a new array of `size` elements, each initialized to none"
-    },
-    "array constructor": {
-        "prefix" : "array",
-        "body" : "array(${args})",
-        "description": "array(args) -> array - Creates a new array with `args` elements"
+        "description": "array(n) -> array - With one argument: a new array of size n, each element initialized to none. With zero or two-or-more arguments, builds an array from those values instead: array() -> [], array(1, 2, 3) -> [1, 2, 3]."
     },
     "number constructor" : {
         "prefix" : "number",
-        "body" : "number(${string})",
-        "description" : "Number cast"
+        "body" : "number(${1:string})",
+        "description" : "number(x) -> number - Converts x to a number; errors on an invalid string, none, or an array"
     },
     "string constructor" : {
         "prefix" : "string",
-        "body" : "string(${value})",
-        "description" : "String cast"
+        "body" : "string(${1:value})",
+        "description" : "string(x) -> string - Converts x to a string; always succeeds"
     },
     "array literal": {
         "prefix": "arrlit",
@@ -512,6 +600,26 @@ This file defines the behavior of the editor (comments and brackets).
         ],
         "description": "void function - Define a function without return value"
     },
+    "function with default argument": {
+        "prefix": "functiond",
+        "body": [
+            "function ${1:name}(${2:param}, ${3:optional} = ${4:default}) {",
+                "",
+            "  return ${0:value};",
+            "}"
+        ],
+        "description": "function - Define a function with a default-valued parameter"
+    },
+    "function with variadic parameter": {
+        "prefix": "functionv",
+        "body": [
+            "function ${1:name}(*${2:args}) {",
+                "",
+            "  return ${0:value};",
+            "}"
+        ],
+        "description": "function - Define a function with a variadic (*args) parameter, collected as an array"
+    },
     "print statement": {
         "prefix": "print",
         "body": "print(${1:expression});",
@@ -603,7 +711,7 @@ This file defines the behavior of the editor (comments and brackets).
     "case": {
         "prefix":"case",
         "body": [
-            "case ${c1}, ${c2}:",
+            "case ${1:c1}, ${2:c2}:",
                 "",
             "break;"
         ]
@@ -612,6 +720,11 @@ This file defines the behavior of the editor (comments and brackets).
         "prefix": "tern",
         "body": "${1:condition} ? ${2:true_value} : ${3:false_value}",
         "description": "ternary - Conditional expression (condition ? true : false)"
+    },
+    "f-string": {
+        "prefix": "fstring",
+        "body": "f\"${1:text} {${2:expr}}\"",
+        "description": "f\"...{expr}...\" - String with {expr} interpolated and converted to a string. Use {{ and }} for a literal brace. If your expr needs a string literal, open the f-string with the other quote character (f'...' vs f\"...\") to avoid a quote collision."
     },
     "comment block": {
         "prefix": "#*",

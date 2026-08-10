@@ -1,5 +1,6 @@
 #include "parser.h"
 #include <cmath>
+#include <sstream>
 
 std::shared_ptr<ASTNode> Parser::createBinaryNode(const std::string& op,
     std::shared_ptr<ASTNode> left, std::shared_ptr<ASTNode> right) {
@@ -976,6 +977,91 @@ std::shared_ptr<ASTNode> Parser::parseArrayLiteral() {
     return std::make_shared<ArrayLiteralNode>(std::move(elements));
 }
 
+// Splits a raw f-string body (escapes already resolved by the tokenizer,
+// but "{" / "}" left untouched) into alternating literal text and
+// interpolated expressions: "x={x}" -> literals=["x=",""], expressions=[x].
+// "{{" / "}}" are literal braces, matching the usual f-string convention.
+// Each {expr} is parsed with its own throwaway Lexer/Tokenizer/Parser
+// sharing this parser's SymbolTable, so variables in scope at the f-string's
+// location resolve exactly as if the expression were written inline. Note:
+// a nested string literal inside {expr} must use the OTHER quote character
+// from the f-string's own quotes, since the tokenizer has already scanned
+// past the f-string using a single matching-quote rule before parseFString
+// ever sees the text - the same limitation Python has before 3.12.
+std::shared_ptr<ASTNode> Parser::parseFString(const std::string& raw) {
+    std::vector<std::string> literals;
+    std::vector<std::shared_ptr<ASTNode>> expressions;
+    std::string currentLiteral;
+
+    size_t i = 0;
+    while(i < raw.size()) {
+        char c = raw[i];
+        if(c == '{') {
+            if(i + 1 < raw.size() && raw[i + 1] == '{') {
+                currentLiteral += '{';
+                i += 2;
+                continue;
+            }
+            literals.push_back(currentLiteral);
+            currentLiteral.clear();
+            i++;
+            std::string exprText;
+            while(i < raw.size() && raw[i] != '}') {
+                exprText += raw[i];
+                i++;
+            }
+            if(i >= raw.size()) {
+                error("f-string: missing closing '}' for interpolation");
+                return nullptr;
+            }
+            i++; // skip '}'
+            if(exprText.empty()) {
+                error("f-string: empty expression in {}");
+                return nullptr;
+            }
+
+            std::shared_ptr<ASTNode> exprNode;
+            try {
+                std::istringstream exprStream(exprText);
+                Lexer exprLexer(exprStream);
+                Tokenizer exprTokenizer(exprLexer);
+                Parser exprParser(exprTokenizer, symTable);
+                exprNode = exprParser.parseExpression();
+            } catch(const std::exception& e) {
+                // Strip the nested (throwaway) parser's own "Line N: " prefix
+                // - its line counter always starts at 1 for the extracted
+                // snippet and would be confusing next to the outer message's
+                // real line number.
+                std::string msg = e.what();
+                size_t colonPos = msg.find(": ");
+                if(msg.rfind("Line ", 0) == 0 && colonPos != std::string::npos) {
+                    msg = msg.substr(colonPos + 2);
+                }
+                error("f-string: invalid expression '" + exprText + "' (" + msg + ")");
+                return nullptr;
+            }
+            if(!exprNode) {
+                error("f-string: invalid expression '" + exprText + "'");
+                return nullptr;
+            }
+            expressions.push_back(exprNode);
+        } else if(c == '}') {
+            if(i + 1 < raw.size() && raw[i + 1] == '}') {
+                currentLiteral += '}';
+                i += 2;
+                continue;
+            }
+            error("f-string: unmatched '}' - use '}}' for a literal '}'");
+            return nullptr;
+        } else {
+            currentLiteral += c;
+            i++;
+        }
+    }
+    literals.push_back(currentLiteral);
+    return std::make_shared<FStringNode>(std::move(literals), std::move(expressions));
+}
+
 std::shared_ptr<ASTNode> Parser::applySubscriptChain(std::shared_ptr<ASTNode> base) {
     while (currentToken.type == TokenType::OpenBracket) {
         nextToken(); // skip '['
@@ -1048,8 +1134,12 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                             nodes.push(applySubscriptChain(varNode));
                             state = ParserState::ExpectOperator;
                         }
-                } else if(token.type == TokenType::StringLiteral) {
-                    nodes.push(applySubscriptChain(std::make_shared<StringNode>(token.value)));
+                } else if(token.type == TokenType::StringLiteral || token.type == TokenType::FStringLiteral) {
+                    std::shared_ptr<ASTNode> strNode = (token.type == TokenType::FStringLiteral)
+                        ? parseFString(token.value)
+                        : std::static_pointer_cast<ASTNode>(std::make_shared<StringNode>(token.value));
+                    if(!strNode) return nullptr;
+                    nodes.push(applySubscriptChain(strNode));
                     state = ParserState::ExpectOperator;
                     nextToken();
                 }  else if(token.type == TokenType::Math_const_vars) {
@@ -1124,10 +1214,14 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                     ops.push(token.value);
                     state = ParserState::ExpectOperand; 
                     nextToken();
-                } else if(token.type == TokenType::StringLiteral) {
+                } else if(token.type == TokenType::StringLiteral || token.type == TokenType::FStringLiteral) {
                     processOperatorStack("+");
                     ops.push("+");
-                    nodes.push(std::make_shared<StringNode>(token.value));
+                    std::shared_ptr<ASTNode> strNode = (token.type == TokenType::FStringLiteral)
+                        ? parseFString(token.value)
+                        : std::static_pointer_cast<ASTNode>(std::make_shared<StringNode>(token.value));
+                    if(!strNode) return nullptr;
+                    nodes.push(strNode);
                     state = ParserState::ExpectOperator; 
                     nextToken();
                 } else if(token.type == TokenType::CloseParen) {

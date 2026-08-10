@@ -847,6 +847,51 @@ std::vector<Instruction> Compiler::generateByteCode(
             code.push_back({(uint32_t)OpCode::MOV, (uint32_t)arrReg, (uint32_t)arrReg, 0});
             storage.push(arrReg);
         }
+        else if(auto fstr = std::dynamic_pointer_cast<FStringNode>(node)) {
+            const auto& literals = fstr->getLiterals();
+            const auto& exprs = fstr->getExpressions();
+
+            auto internString = [&](const std::string& val) -> int {
+                auto it = stringMap.find(val);
+                if(it != stringMap.end()) return it->second;
+                int idx = (int)stringPool.size();
+                stringPool.push_back(val);
+                stringMap[val] = idx;
+                return idx;
+            };
+
+            int resultReg = allocateTempRegister();
+            code.push_back({(uint32_t)OpCode::LOAD_STR, (uint32_t)resultReg, (uint32_t)internString(literals[0]), 0});
+
+            for(size_t i = 0; i < exprs.size(); ++i) {
+                auto exprCode = generateByteCode(postOrderTraverse(exprs[i]), pcBase + code.size());
+                rebaseJumpTargets(exprCode, static_cast<uint16_t>(code.size()));
+                code.insert(code.end(), exprCode.begin(), exprCode.end());
+                int exprReg = exprCode.empty() ? 0 : exprCode.back().dst;
+
+                int strReg = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::TO_STRING, (uint32_t)strReg, (uint32_t)exprReg, 0});
+                freeTempRegister(exprReg);
+
+                int nextResultReg = allocateTempRegister();
+                code.push_back({(uint32_t)OpCode::ADD, (uint32_t)nextResultReg, (uint32_t)resultReg, (uint32_t)strReg});
+                freeTempRegister(resultReg);
+                freeTempRegister(strReg);
+                resultReg = nextResultReg;
+
+                const std::string& lit = literals[i + 1];
+                if(!lit.empty()) {
+                    int litReg = allocateTempRegister();
+                    code.push_back({(uint32_t)OpCode::LOAD_STR, (uint32_t)litReg, (uint32_t)internString(lit), 0});
+                    int concatReg = allocateTempRegister();
+                    code.push_back({(uint32_t)OpCode::ADD, (uint32_t)concatReg, (uint32_t)resultReg, (uint32_t)litReg});
+                    freeTempRegister(resultReg);
+                    freeTempRegister(litReg);
+                    resultReg = concatReg;
+                }
+            }
+            storage.push(resultReg);
+        }
     }
     return code;
 }

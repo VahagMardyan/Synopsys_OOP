@@ -11,6 +11,7 @@ enum class TokenType {
     Comma, // ,
     Print, // print function
     StringLiteral, // string
+    FStringLiteral, // f-string, e.g. f"x={x}"
     And, // &&
     Or, // ||
     Not, // !

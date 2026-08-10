@@ -16,6 +16,11 @@
         { "open": "(", "close": ")" },
         { "open": "[", "close": "]" },
         { "open": "\"", "close": "\"" },
-        { "open": "'", "close": "'" }
+        { "open": "'", "close": "'" },
+        { "open": "f\"", "close": "\"" },
+        { "open": "f'", "close": "'" },
+        { "open": "F\"", "close": "\"" },
+        { "open": "F'", "close": "'" },
+        { "open": "#*", "close": "*#" },
     ]
 }

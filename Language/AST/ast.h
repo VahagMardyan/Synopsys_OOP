@@ -300,6 +300,23 @@ class StringNode : public ASTNode {
         std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
 };
 
+// f-string: f"literal {expr} literal {expr} ..." - literals.size() is always
+// expressions.size() + 1 (a literal segment before/after/between every
+// interpolation, possibly empty). Elements are intentionally NOT exposed via
+// getChildren() (mirroring ArrayLiteralNode) - the compiler walks
+// getExpressions() itself to interleave LOAD_STR/TO_STRING/ADD(concat)
+// instructions in source order.
+class FStringNode : public ASTNode {
+    std::vector<std::string> literals;
+    std::vector<std::shared_ptr<ASTNode>> expressions;
+public:
+    FStringNode(std::vector<std::string> lits, std::vector<std::shared_ptr<ASTNode>> exprs)
+        : literals(std::move(lits)), expressions(std::move(exprs)) {}
+    const std::vector<std::string>& getLiterals() const { return literals; }
+    const std::vector<std::shared_ptr<ASTNode>>& getExpressions() const { return expressions; }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
 // One function parameter: a name, and (for non-variadic params) an optional
 // default-value expression evaluated at call time when the caller didn't
 // supply that argument.

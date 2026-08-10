@@ -71,10 +71,10 @@ Token Tokenizer::getNextToken() {
 
     char current = static_cast<char>(lexer.peek());
 
-    // 2. String literal
-    if(current == '"' || current == '\'') {
-        char openQuote = current;
-        lexer.advance();
+    // Reads a quoted string body up to (and consuming) the closing quote.
+    // Shared by plain string literals and f-strings, which only differ in
+    // the token type they're wrapped in - the escape handling is identical.
+    auto readQuotedBody = [&](char openQuote) -> std::string {
         std::string str;
         while(!lexer.isEOF() && lexer.peek() != openQuote) {
             char c = (char)lexer.peek();
@@ -92,7 +92,14 @@ Token Tokenizer::getNextToken() {
             lexer.advance();
         }
         if(!lexer.isEOF()) lexer.advance();
-        return {TokenType::StringLiteral, str, lexer.getLineNumber()};
+        return str;
+    };
+
+    // 2. String literal
+    if(current == '"' || current == '\'') {
+        char openQuote = current;
+        lexer.advance();
+        return {TokenType::StringLiteral, readQuotedBody(openQuote), lexer.getLineNumber()};
     }
 
     // 3. Punctuation
@@ -142,6 +149,17 @@ Token Tokenizer::getNextToken() {
             name += (char)lexer.peek();
             lexer.advance();
         }
+
+        // f-string prefix: f"..." or f'...' - only when the quote is
+        // immediately adjacent (no space), so a variable literally named
+        // "f" followed by a separate string (`f "x"`) is unaffected.
+        if((name == "f" || name == "F") && !lexer.isEOF() &&
+           (lexer.peek() == '"' || lexer.peek() == '\'')) {
+            char openQuote = (char)lexer.peek();
+            lexer.advance();
+            return {TokenType::FStringLiteral, readQuotedBody(openQuote), lexer.getLineNumber()};
+        }
+
         const std::string lowered = toLower(name);
         if(lowered == "if")    return {TokenType::If,    lowered, lexer.getLineNumber()};
         if(lowered == "else")  return {TokenType::Else,  lowered, lexer.getLineNumber()};

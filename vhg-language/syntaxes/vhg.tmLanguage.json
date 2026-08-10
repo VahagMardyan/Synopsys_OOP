@@ -3,6 +3,7 @@
     "scopeName": "source.vhg",
     "patterns": [
         { "include": "#comments" },
+        { "include": "#fstrings" },
         { "include": "#strings" },
         { "include": "#keywords" },
         { "include": "#builtIn" },
@@ -48,6 +49,66 @@
                         "name": "constant.character.escape.vhg",
                         "match": "\\\\."
                     }]
+                }
+            ]
+        },
+        "fstrings": {
+            "patterns": [
+                {
+                    "name": "string.interpolated.double.vhg",
+                    "begin": "(?i)\\bf\"",
+                    "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.vhg" } },
+                    "end": "\"",
+                    "endCaptures": { "0": { "name": "punctuation.definition.string.end.vhg" } },
+                    "patterns": [
+                        { "name": "constant.character.escape.vhg", "match": "\\{\\{|\\}\\}" },
+                        { "name": "constant.character.escape.vhg", "match": "\\\\." },
+                        {
+                            "name": "meta.embedded.line.vhg",
+                            "begin": "\\{",
+                            "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.vhg" } },
+                            "end": "\\}",
+                            "endCaptures": { "0": { "name": "punctuation.section.embedded.end.vhg" } },
+                            "patterns": [
+                                { "include": "#builtIn" },
+                                { "include": "#math_functions" },
+                                { "include": "#boolean" },
+                                { "include": "#logical_operators" },
+                                { "include": "#numbers" },
+                                { "include": "#function_call" },
+                                { "include": "#operators" },
+                                { "include": "#variables" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "string.interpolated.single.vhg",
+                    "begin": "(?i)\\bf'",
+                    "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.vhg" } },
+                    "end": "'",
+                    "endCaptures": { "0": { "name": "punctuation.definition.string.end.vhg" } },
+                    "patterns": [
+                        { "name": "constant.character.escape.vhg", "match": "\\{\\{|\\}\\}" },
+                        { "name": "constant.character.escape.vhg", "match": "\\\\." },
+                        {
+                            "name": "meta.embedded.line.vhg",
+                            "begin": "\\{",
+                            "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.vhg" } },
+                            "end": "\\}",
+                            "endCaptures": { "0": { "name": "punctuation.section.embedded.end.vhg" } },
+                            "patterns": [
+                                { "include": "#builtIn" },
+                                { "include": "#math_functions" },
+                                { "include": "#boolean" },
+                                { "include": "#logical_operators" },
+                                { "include": "#numbers" },
+                                { "include": "#function_call" },
+                                { "include": "#operators" },
+                                { "include": "#variables" }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
