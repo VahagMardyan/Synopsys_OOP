@@ -267,3 +267,77 @@ function max(*nums) {
     return max_value;
 }
 
+# Calculate determinant using LU decomposition (no pivoting)
+function determinant_lu(mat) {
+    var n = length(mat);
+    
+    # Quick validation
+    if (n == 0) {
+        print("Error: Empty matrix");
+        return 0;
+    }
+    
+    # Check if square
+    var i = 0;
+    while (i < n) {
+        if (length(mat[i]) != n) {
+            print("Error: Matrix must be square (", n, "x", n, ")");
+            return 0;
+        }
+        i = i + 1;
+    }
+    
+    # Copy matrix
+    var a = [];
+    i = 0;
+    while (i < n) {
+        var row = [];
+        var j = 0;
+        while (j < n) {
+            array_push(row, mat[i][j]);
+            j = j + 1;
+        }
+        array_push(a, row);
+        i = i + 1;
+    }
+    
+    var det = 1;
+    i = 0;
+    while (i < n) {
+        var pivot = a[i][i];
+        if (pivot == 0) {
+            var swapped = false;
+            var k = i + 1;
+            while (k < n and not swapped) {
+                if (a[k][i] != 0) {
+                    var temp = a[i];
+                    a[i] = a[k];
+                    a[k] = temp;
+                    det = -det;
+                    pivot = a[i][i];
+                    swapped = true;
+                }
+                k = k + 1;
+            }
+            if (not swapped) {
+                return 0;
+            }
+        }
+        
+        det = det * pivot;
+        
+        var j = i + 1;
+        while (j < n) {
+            var factor = a[j][i] / pivot;
+            var k = i;
+            while (k < n) {
+                a[j][k] = a[j][k] - factor * a[i][k];
+                k = k + 1;
+            }
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    
+    return det;
+}
