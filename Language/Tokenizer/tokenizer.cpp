@@ -112,7 +112,14 @@ Token Tokenizer::getNextToken() {
     if(current == ';') { lexer.advance(); return {TokenType::Semicolon,   ";", lexer.getLineNumber()}; }
     if(current == ',') { lexer.advance(); return {TokenType::Comma,       ",", lexer.getLineNumber()}; }
     if(current == '?') { lexer.advance(); return {TokenType::QuestionMark, "?", lexer.getLineNumber()}; }
-    if(current == ':') { lexer.advance(); return {TokenType::Colon, ":", lexer.getLineNumber()}; }
+    if(current == ':') {
+        lexer.advance();
+        if(!lexer.isEOF() && lexer.peek() == '=') {
+            lexer.advance();
+            return {TokenType::Walrus, ":=", lexer.getLineNumber()};
+        }
+        return {TokenType::Colon, ":", lexer.getLineNumber()};
+    }
 
     // 4. Numbers
     // Supports: 1_000_000 (underscore separator, stripped)

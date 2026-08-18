@@ -33,6 +33,7 @@ enum class TokenType {
     Default,
     Line, // for line numbers
     Variable, // "variable", "var" keywords
+    Walrus, // := (assignment expression, e.g. Python's walrus operator)
 };
 
 struct Token {

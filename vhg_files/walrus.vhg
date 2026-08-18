@@ -1,0 +1,8 @@
+void function main() {
+    print(arr := [1,2,3]); # Declare an array 'arr' and print it
+    array_push(arr, "Hello World!"); # Push new element
+    print(f"arr is: {arr}"); # Print modified array
+    array_push(arr, b := 4); # Declare new variable 'b' and push it into 'arr'
+    print(f'New arr is: {arr}'); # Print modified 'arr'
+    print(f'b is: {b}'); # Print 'b'
+}

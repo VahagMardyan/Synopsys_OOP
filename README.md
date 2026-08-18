@@ -740,7 +740,7 @@ void function main() {
 | Bitwise                | `&` `\|` `^` `<<` `>>` `~`                                                                                                                                                                                                                                |
 | Logical                | `and` `or` `not`                                                                                                                                                                                                                                               |
 | Comparison             | `==` `!=` `<` `>` `<=` `>=`                                                                                                                                                                                                                              |
-| Assignment             | `=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                                      |
+| Assignment             | `=` `:=` `+=` `-=` `*=` `/=` `%=` `^=` (including on subscripts, e.g.`arr[i] += 1;`)                                                                                                                                                               |
 | String                 | `+` `+=` (concatenation), `length(s)` → size, `*` → repetition, `s[i]` read, `s[i] = c` write                                                                                                                                                          |
 | Array                  | `arr[i]` read, `arr[i] = x` write (including chained, e.g.`matrix[i][j] = x`), compound assignment (e.g.`arr[i] += 1;`), `length(arr)` → size, `+` → concatenation (new array), `*` → repetition (new array), `+=` → reassigns to`arr + other` |
 | Ternary                | `condition ? trueBranch : falseBranch` (e.g `x = 5 > 6 ? 7 : 8;`)                                                                                                                                                                                                |
@@ -751,32 +751,54 @@ void function main() {
 
 > **Note:** Compound assignment (`+=`, `-=`, `*=`, `/=`, `%=`, `^=`) works on subscript targets too, not just plain variables: `arr[i] += 1;` reads `arr[i]`, applies the operator, and writes the result back to `arr[i]` — equivalent to `arr[i] = arr[i] + 1;`.
 
+> **Note:** For using `:=` (walrus) operator you don't need to use `var | variable | local | global` keywords.
+> Walrus operator provides to declare variable in any expressions (`while | if | print | array_push | etc.`).
+
+```vhg
+void function main() {
+    print(arr := [1,2,3]); # Declare an array 'arr' and print it
+    array_push(arr, "Hello World!"); # Push new element
+    print(f"arr is: {arr}"); # Print modified array
+    array_push(arr, b := 4); # Declare new variable 'b' and push it into 'arr'
+    print(f'New arr is: {arr}'); # Print modified 'arr'
+    print(f'b is: {b}'); # Print 'b'
+}
+```
+
+```Shell
+./vhg .\app.vhg
+[1, 2, 3]
+arr is: [1, 2, 3, 'Hello World!']
+New arr is: [1, 2, 3, 'Hello World!', 4]
+b is: 4
+```
+
 ### Mathematical Functions
 
-| Function                 | Description                                                                                         | Number of Arguments |
-| ------------------------ | --------------------------------------------------------------------------------------------------- | ------------------- |
-| `sin(x)`               | Sine                                                                                                | 1                   |
-| `cos(x)`               | Cosine                                                                                              | 1                   |
-| `tan(x)`               | Tangent                                                                                             | 1                   |
-| `asin(x)`              | Arc sine                                                                                            | 1                   |
-| `acos(x)`              | Arc cosine                                                                                          | 1                   |
-| `atan(x)`              | Arc tangent                                                                                         | 1                   |
-| `atan2(y, x)`          | Arc tangent (two arguments)                                                                         | 2                   |
-| `sqrt(x)`              | Square root                                                                                         | 1                   |
-| `cbrt(x)`              | Cube root                                                                                           | 1                   |
-| `pow(x, y)`            | Power (x^y)                                                                                         | 2                   |
-| `exp(x)`               | Exponential (e^x)                                                                                   | 1                   |
-| `log(x)`               | Natural logarithm (base e)                                                                          | 1                   |
-| `ln(x)`                | Natural logarithm (base e)                                                                          | 1                   |
-| `log10(x)`             | Base-10 logarithm                                                                                   | 1                   |
-| `log2(x)`              | Base-2 logarithm                                                                                    | 1                   |
-| `log_ab(a, b)`         | Logarithm of`b` with base `a` (log(b)/log(a))                                                   | 2                   |
-| `ceil(x)`              | Round up                                                                                            | 1                   |
-| `floor(x)`             | Round down                                                                                          | 1                   |
-| `round(x)`             | Round to nearest integer                                                                            | 1                   |
-| `abs(x)`               | Absolute value                                                                                      | 1                   |
-| `fmod(x, y)`           | Floating-point remainder                                                                            | 2                   |
-| `random(min=0, max=1)` | Returns a random floating-point number in the range**[min, max)**. Default range is**[0, 1)** | 0 or 2              |
+| Function                 | Description                                                                                          | Number of Arguments |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- | ------------------- |
+| `sin(x)`               | Sine                                                                                                 | 1                   |
+| `cos(x)`               | Cosine                                                                                               | 1                   |
+| `tan(x)`               | Tangent                                                                                              | 1                   |
+| `asin(x)`              | Arc sine                                                                                             | 1                   |
+| `acos(x)`              | Arc cosine                                                                                           | 1                   |
+| `atan(x)`              | Arc tangent                                                                                          | 1                   |
+| `atan2(y, x)`          | Arc tangent (two arguments)                                                                          | 2                   |
+| `sqrt(x)`              | Square root                                                                                          | 1                   |
+| `cbrt(x)`              | Cube root                                                                                            | 1                   |
+| `pow(x, y)`            | Power (x^y)                                                                                          | 2                   |
+| `exp(x)`               | Exponential (e^x)                                                                                    | 1                   |
+| `log(x)`               | Natural logarithm (base e)                                                                           | 1                   |
+| `ln(x)`                | Natural logarithm (base e)                                                                           | 1                   |
+| `log10(x)`             | Base-10 logarithm                                                                                    | 1                   |
+| `log2(x)`              | Base-2 logarithm                                                                                     | 1                   |
+| `log_ab(a, b)`         | Logarithm of`b` with base `a` (log(b)/log(a))                                                    | 2                   |
+| `ceil(x)`              | Round up                                                                                             | 1                   |
+| `floor(x)`             | Round down                                                                                           | 1                   |
+| `round(x)`             | Round to nearest integer                                                                             | 1                   |
+| `abs(x)`               | Absolute value                                                                                       | 1                   |
+| `fmod(x, y)`           | Floating-point remainder                                                                             | 2                   |
+| `random(min=0, max=1)` | Returns a random floating-point number in the range**[min, max)**. Default range is:**[0, 1)** | 0 or 2              |
 
 ---
 

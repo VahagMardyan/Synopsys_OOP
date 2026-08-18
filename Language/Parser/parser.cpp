@@ -977,17 +977,53 @@ std::shared_ptr<ASTNode> Parser::parseArrayLiteral() {
     return std::make_shared<ArrayLiteralNode>(std::move(elements));
 }
 
-// Splits a raw f-string body (escapes already resolved by the tokenizer,
-// but "{" / "}" left untouched) into alternating literal text and
-// interpolated expressions: "x={x}" -> literals=["x=",""], expressions=[x].
-// "{{" / "}}" are literal braces, matching the usual f-string convention.
-// Each {expr} is parsed with its own throwaway Lexer/Tokenizer/Parser
-// sharing this parser's SymbolTable, so variables in scope at the f-string's
-// location resolve exactly as if the expression were written inline. Note:
-// a nested string literal inside {expr} must use the OTHER quote character
-// from the f-string's own quotes, since the tokenizer has already scanned
-// past the f-string using a single matching-quote rule before parseFString
-// ever sees the text - the same limitation Python has before 3.12.
+std::shared_ptr<ASTNode> Parser::parseWalrus(const std::string& name) {
+    nextToken(); // skip ':='
+
+    auto savedOps = ops;
+    auto savedNodes = nodes;
+    auto savedState = state;
+    auto valueExpr = parseExpression();
+    ops = savedOps;
+    nodes = savedNodes;
+    state = savedState;
+    if (!valueExpr) {
+        state = ParserState::Error;
+        return nullptr;
+    }
+
+    int32_t localOffset = 0;
+    size_t globalAddr = 0;
+    int outerHops = 0;
+    bool isLocalVar;
+    bool haveBinding = false;
+
+    if (symTable.tryResolveLocal(name, localOffset, outerHops)) {
+        isLocalVar = true;
+        haveBinding = true;
+    } else if (symTable.tryGetGlobalAddress(name, globalAddr)) {
+        isLocalVar = false;
+        haveBinding = true;
+    } else {
+        isLocalVar = shouldDefaultToLocal(false);
+    }
+
+    if (!haveBinding) {
+        if (isLocalVar) {
+            localOffset = symTable.getLocalOffset(name);
+            outerHops = 0;
+        } else {
+            globalAddr = symTable.getGlobalAddress(name);
+        }
+    }
+
+    if (isLocalVar) {
+        return std::make_shared<WalrusNode>(localOffset, valueExpr, outerHops);
+    } else {
+        return std::make_shared<WalrusNode>(globalAddr, valueExpr);
+    }
+}
+
 std::shared_ptr<ASTNode> Parser::parseFString(const std::string& raw) {
     std::vector<std::string> literals;
     std::vector<std::shared_ptr<ASTNode>> expressions;
@@ -1128,6 +1164,11 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                             if(!node) return nullptr;
                             nodes.push(applySubscriptChain(node));
                             state = ParserState::ExpectOperator;
+                        } else if(currentToken.type == TokenType::Walrus) {
+                            auto walrusNode = parseWalrus(name);
+                            if(!walrusNode) return nullptr;
+                            nodes.push(applySubscriptChain(walrusNode));
+                            state = ParserState::ExpectOperator;
                         } else {
                             auto varNode = resolveVariableNode(name);
                             if(!varNode) return nullptr;
@@ -1256,6 +1297,10 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
                                 std::shared_ptr<ASTNode> node = parseFunctionCall(name);
                                 if(!node) return nullptr;
                                 nodes.push(applySubscriptChain(node));
+                            } else if(currentToken.type == TokenType::Walrus) {
+                                auto walrusNode = parseWalrus(name);
+                                if(!walrusNode) return nullptr;
+                                nodes.push(applySubscriptChain(walrusNode));
                             } else {
                                 auto varNode = resolveVariableNode(name);
                                 if(!varNode) return nullptr;

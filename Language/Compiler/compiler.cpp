@@ -7,6 +7,10 @@
 const int SP = 2;
 const int FP = 8;
 
+namespace {
+    void emitStoreVariable(const std::shared_ptr<VariableNode>& var, int srcReg, std::vector<Instruction>& code);
+}
+
 static void rebaseJumpTargets(std::vector<Instruction>& instructions, uint16_t baseOffset) {
     for(auto& inst : instructions) {
         if(inst.op == (uint32_t)OpCode::JZ || inst.op == (uint32_t)OpCode::JMP) {
@@ -846,6 +850,19 @@ std::vector<Instruction> Compiler::generateByteCode(
             // slot, so restore that invariant with a harmless self-MOV.
             code.push_back({(uint32_t)OpCode::MOV, (uint32_t)arrReg, (uint32_t)arrReg, 0});
             storage.push(arrReg);
+        }
+        else if(auto walrus = std::dynamic_pointer_cast<WalrusNode>(node)) {
+            auto valueCode = generateByteCode(postOrderTraverse(walrus->getValue()), pcBase + code.size());
+            rebaseJumpTargets(valueCode, static_cast<uint16_t>(code.size()));
+            code.insert(code.end(), valueCode.begin(), valueCode.end());
+            int valReg = valueCode.empty() ? 0 : valueCode.back().dst;
+
+            std::shared_ptr<VariableNode> targetVar = walrus->isLocal()
+                ? std::make_shared<VariableNode>(walrus->getOffset(), walrus->getLocalOuterHops())
+                : std::make_shared<VariableNode>(walrus->getAddress());
+            emitStoreVariable(targetVar, valReg, code);
+
+            storage.push(valReg);
         }
         else if(auto fstr = std::dynamic_pointer_cast<FStringNode>(node)) {
             const auto& literals = fstr->getLiterals();

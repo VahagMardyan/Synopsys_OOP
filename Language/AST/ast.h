@@ -241,6 +241,33 @@ public:
     std::shared_ptr<ASTNode> getValue() const { return value; }
 };
 
+// walrus / assignment-expression: (name := expr) -- assigns and evaluates
+// to the assigned value, so it can be embedded inside a larger expression
+// (condition of an if/while, an operand of arithmetic, etc.), unlike plain
+// "name = expr;" which is statement-only.
+class WalrusNode : public ASTNode {
+private:
+    bool isLocalFlag;
+    int32_t localOffset;
+    int localOuterHops_ = 0;
+    size_t globalAddr;
+    std::shared_ptr<ASTNode> value;
+
+public:
+    WalrusNode(int32_t offset, std::shared_ptr<ASTNode> val, int localOuterHops = 0)
+        : isLocalFlag(true), localOffset(offset), localOuterHops_(localOuterHops), globalAddr(0), value(val) {}
+
+    WalrusNode(size_t addr, std::shared_ptr<ASTNode> val)
+        : isLocalFlag(false), localOffset(0), localOuterHops_(0), globalAddr(addr), value(val) {}
+
+    bool isLocal() const { return isLocalFlag; }
+    int32_t getOffset() const { return localOffset; }
+    int getLocalOuterHops() const { return localOuterHops_; }
+    size_t getAddress() const { return globalAddr; }
+    std::shared_ptr<ASTNode> getValue() const { return value; }
+    std::vector<std::shared_ptr<ASTNode>> getChildren() const override { return {}; }
+};
+
 class IfStatementNode : public StatementNode {
     std::shared_ptr<ASTNode> condition;
     std::shared_ptr<StatementNode> thenBranch, elseBranch;
